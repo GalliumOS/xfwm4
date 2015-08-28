@@ -1,0 +1,14 @@
+[Desktop Entry]
+Version=1.0
+_Name=Window Manager
+_Comment=Configure window behavior and shortcuts
+Exec=xfwm4-settings
+Icon=xfwm4
+Terminal=false
+Type=Application
+Categories=XFCE;GTK;Settings;DesktopSettings;X-XFCE-SettingsDialog;X-XFCE-PersonalSettings;
+StartupNotify=true
+OnlyShowIn=XFCE;
+X-XfcePluggable=true
+X-XfceHelpComponent=xfwm4
+X-XfceHelpPage=preferences

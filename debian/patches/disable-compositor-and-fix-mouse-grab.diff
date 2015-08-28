@@ -1,0 +1,30 @@
+Author: Hugh Greenberg <hugegreenbug@gmail.com>
+Desc: Fix for the mouse being grabbed when clicking directly underneath
+the title bar. Also, changes to disable the compositor.
+
+--- a/settings-dialogs/tweaks-settings.c
++++ b/settings-dialogs/tweaks-settings.c
+@@ -447,6 +447,11 @@
+     vbox = GTK_WIDGET (gtk_builder_get_object (builder, "main-vbox"));
+     gtk_widget_show_all (vbox);
+ 
++    /* Hack to hide the compositor tab */
++    GtkWidget *ctab;
++    ctab = GTK_WIDGET (gtk_builder_get_object (builder, "vbox7"));
++    gtk_widget_hide(ctab);
++
+     g_free (easy_click);
+     g_free (activate_action);
+ }
+--- a/src/netwm.c
++++ b/src/netwm.c
+@@ -700,9 +700,7 @@
+             resize = TRUE; /* Resize */
+             break;
+         case NET_WM_MOVERESIZE_MOVE:
+-            event->type = ButtonPress;
+             resize = FALSE; /* Move */
+-            break;
+         case NET_WM_MOVERESIZE_CANCEL:
+             FLAG_UNSET (c->xfwm_flags, XFWM_FLAG_MOVING_RESIZING);
+             /* Walk through */

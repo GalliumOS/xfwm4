@@ -1,0 +1,14 @@
+#!/usr/bin/make -f
+
+export DEB_LDFLAGS_MAINT_APPEND=-Wl,--as-needed -Wl,-O1 -Wl,-z,defs
+export DEB_BUILD_MAINT_OPTIONS=hardening=+all
+export DEB_CPPFLAGS_MAINT_APPEND=-DMONITOR_ROOT_PIXMAP
+
+override_dh_strip:
+	dh_strip --dbg-package=xfwm4-dbg
+
+override_dh_auto_configure:
+	dh_auto_configure -- --disable-silent-rules --disable-compositor
+
+%:
+	dh $@ --parallel
