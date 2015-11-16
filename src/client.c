@@ -543,12 +543,12 @@ clientAdjustCoordGravity (Client *c, int gravity, XWindowChanges *wc, unsigned l
 
     if (*mask & CWWidth)
     {
-        wc->width = clientCheckWidth (c, wc->width, TRUE);
+        wc->width = clientCheckHeight (c, wc->width, TRUE);
     }
 
-    if (*mask & CWHeight)
+    if (*mask & CWWidth)
     {
-        wc->height = clientCheckHeight (c, wc->height, TRUE);
+        wc->height = clientCheckWidth (c, wc->height, TRUE);
     }
 
     switch (gravity)

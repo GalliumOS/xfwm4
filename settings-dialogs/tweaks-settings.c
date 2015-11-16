@@ -447,11 +447,6 @@ wm_tweaks_dialog_configure_widgets (GtkBuilder *builder)
     vbox = GTK_WIDGET (gtk_builder_get_object (builder, "main-vbox"));
     gtk_widget_show_all (vbox);
 
-    /* Hack to hide the compositor tab */
-    GtkWidget *ctab;
-    ctab = GTK_WIDGET (gtk_builder_get_object (builder, "vbox7"));
-    gtk_widget_hide(ctab);
-
     g_free (easy_click);
     g_free (activate_action);
 }
