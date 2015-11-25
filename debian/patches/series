@@ -1,2 +1,3 @@
 fix-a-mishmash-between-width-and-height.patch
 disable-compositor-and-fix-mouse-grab.diff
+CrOS_mouse_scale_and_rotation.patch
