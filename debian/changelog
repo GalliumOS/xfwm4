@@ -1,3 +1,9 @@
+xfwm4 (4.12.2-1ubuntu2) vivid; urgency=medium
+
+  * Added patch to set up the scaling and rotation properties for the CrOS X11 patch
+
+ -- Hugh Greenberg <hugh@distroshare.com>  Wed, 25 Nov 2015 06:37:11 +1100
+
 xfwm4 (4.12.2-1ubuntu1) vivid; urgency=medium
 
   * Fixed compatibility issues with chromeOS touchpad driver

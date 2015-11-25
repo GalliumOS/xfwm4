@@ -104,7 +104,7 @@
  gboolean
  myScreenUpdateFontHeight (ScreenInfo *screen_info)
  {
-@@ -848,3 +893,68 @@
+@@ -848,3 +893,67 @@
  
      return FALSE;
  }
@@ -151,7 +151,6 @@
 +    }
 +
 +    scale_factor = new_scale_factor;
-+    printf("New scale factor is: %f\n", scale_factor);
 +
 +    conf = XRRGetScreenInfo(screen_info->display_info->dpy, screen_info->xroot);
 +    XRRConfigCurrentConfiguration(conf, &rotation);
