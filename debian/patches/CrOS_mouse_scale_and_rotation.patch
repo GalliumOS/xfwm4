@@ -59,7 +59,7 @@
              *rect = screen_info->cache_monitor;
              return;
          }
-@@ -813,13 +827,44 @@
+@@ -813,13 +827,41 @@
          {
              min_distsquare = distsquare;
              nearest_monitor = monitor;
@@ -86,25 +86,22 @@
 +void
 +myScreenScaleAtPoint (ScreenInfo *screen_info, gint x, gint y, float *scale_factor) {
 +    GdkRectangle rect;
-+    float dpi_x, dpi_y, dpi;
++    float dpi;
 +
 +    myScreenFindMonitorMMAtPoint (screen_info, x, y, &rect);
-+    dpi_x = screen_info->cache_monitor.width / (screen_info->cache_monitor_mm.width / 25.4);
-+    dpi_y = screen_info->cache_monitor.height / (screen_info->cache_monitor_mm.height / 25.4);
++    dpi = screen_info->cache_monitor.width / (screen_info->cache_monitor_mm.width / 25.4);
 +
-+    dpi = MAX(dpi_x, dpi_y);
 +    if (dpi <= 0) {
 +	dpi = 96.0f;
 +    }
 +
 +    *scale_factor = dpi/96.0f;
-+
 +}
 +
  gboolean
  myScreenUpdateFontHeight (ScreenInfo *screen_info)
  {
-@@ -848,3 +893,67 @@
+@@ -848,3 +890,67 @@
  
      return FALSE;
  }
@@ -157,7 +154,7 @@
 +
 +    myScreenChangeCrosProp(screen_info, "_CHROME_DISPLAY_ROTATION", rotation);
 +    myScreenChangeCrosProp(screen_info, "_CHROME_DISPLAY_SCALE_FACTOR", (int)(scale_factor * 100));
-+    myScreenChangeCrosProp(screen_info, "_CHROME_DISPLAY_INTERNAL", 1);
++    myScreenChangeCrosProp(screen_info, "_CHROME_DISPLAY_INTERNAL", screen_info->cache_monitor_internal);
 +}
 +
 +gint myScreenGetMonitorInternal(ScreenInfo *screen_info, gint monitor_index) {
