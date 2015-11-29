@@ -1,3 +1,9 @@
+xfwm4 (4.12.2-1ubuntu3) vivid; urgency=medium
+
+  * Improved scaling and rotation patch
+
+ -- Hugh Greenberg <hugh@galliumos.org>  Sun, 29 Nov 2015 00:06:11 +1100
+
 xfwm4 (4.12.2-1ubuntu2) vivid; urgency=medium
 
   * Added patch to set up the scaling and rotation properties for the CrOS X11 patch
