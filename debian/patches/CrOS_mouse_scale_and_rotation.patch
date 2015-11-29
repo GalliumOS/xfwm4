@@ -4,7 +4,7 @@
          initPerScreenCallbacks (screen_info);
  
          XDefineCursor (main_display_info->dpy, screen_info->xroot, myDisplayGetCursorRoot(main_display_info));
-+	myScreenSetCrosDisplayProps (screen_info, 0, 0);
++	myScreenSetCrosDisplayProps (screen_info);
      }
  
      /* No screen to manage, give up */
@@ -18,7 +18,7 @@
  
  #ifdef HAVE_RENDER
  #include <X11/extensions/Xrender.h>
-@@ -757,6 +758,11 @@
+@@ -757,6 +758,14 @@
      screen_info->cache_monitor.y = -1;
      screen_info->cache_monitor.width = 0;
      screen_info->cache_monitor.height = 0;
@@ -26,11 +26,14 @@
 +    screen_info->cache_monitor_mm.y = -1;
 +    screen_info->cache_monitor_mm.width = 0;
 +    screen_info->cache_monitor_mm.height = 0;
-+
++    screen_info->cache_monitor_cros.x = -1;
++    screen_info->cache_monitor_cros.y = -1;
++    screen_info->cache_monitor_cros.width = 0;
++    screen_info->cache_monitor_cros.height = 0;
  }
  
  /*
-@@ -768,7 +774,9 @@
+@@ -768,7 +777,9 @@
  {
      gint dx, dy, center_x, center_y, num_monitors, i;
      guint32 distsquare, min_distsquare;
@@ -41,7 +44,7 @@
  
      g_return_if_fail (screen_info != NULL);
      g_return_if_fail (rect != NULL);
-@@ -792,11 +800,17 @@
+@@ -792,11 +803,17 @@
  
          monitor_index = myScreenGetMonitorIndex (screen_info, i);
          gdk_screen_get_monitor_geometry (screen_info->gscr, monitor_index, &monitor);
@@ -59,7 +62,7 @@
              *rect = screen_info->cache_monitor;
              return;
          }
-@@ -813,13 +827,41 @@
+@@ -813,13 +830,41 @@
          {
              min_distsquare = distsquare;
              nearest_monitor = monitor;
@@ -101,7 +104,7 @@
  gboolean
  myScreenUpdateFontHeight (ScreenInfo *screen_info)
  {
-@@ -848,3 +890,67 @@
+@@ -848,3 +893,85 @@
  
      return FALSE;
  }
@@ -126,7 +129,7 @@
 +    g_free(data);
 +}
 +
-+void myScreenSetCrosDisplayProps (ScreenInfo *screen_info, gint x, gint y) {
++void myScreenSetCrosDisplayProps (ScreenInfo *screen_info) {
 +    float scale_factor;
 +    const float scale_factors[] = {1.0f, 1.0f, 1.25f, 1.33f, 1.4f, 1.5f, 1.8f,
 +					2.0f, 2.5f, 3.0f};
@@ -134,8 +137,24 @@
 +    float smallest_diff, diff, new_scale_factor;
 +    Rotation rotation;
 +    XRRScreenConfiguration *conf;
++    Window dr, window;
++    unsigned int modifiers;
++    int x, y, wx, wy;
 +
++    XQueryPointer (myScreenGetXDisplay (screen_info), screen_info->xroot,
++                   &dr, &window, &x, &y, &wx, &wy, &modifiers);
++
++    /* Cache system */
++    if ((x >= screen_info->cache_monitor_cros.x) && (x < screen_info->cache_monitor_cros.x + screen_info->cache_monitor_cros.width) &&
++        (y >= screen_info->cache_monitor_cros.y) && (y < screen_info->cache_monitor_cros.y + screen_info->cache_monitor_cros.height))
++    {
++	g_timeout_add_seconds(1, (GSourceFunc) myScreenSetCrosDisplayProps, screen_info);
++        return;
++    }
++
++    printf("Set new scale\n");
 +    myScreenScaleAtPoint (screen_info, x, y, &scale_factor);
++    screen_info->cache_monitor_cros = screen_info->cache_monitor;
 +    smallest_diff = diff = 0;
 +    new_scale_factor = scale_factor;
 +    num_factors = sizeof(scale_factors)/sizeof(scale_factors[0]);
@@ -155,6 +174,8 @@
 +    myScreenChangeCrosProp(screen_info, "_CHROME_DISPLAY_ROTATION", rotation);
 +    myScreenChangeCrosProp(screen_info, "_CHROME_DISPLAY_SCALE_FACTOR", (int)(scale_factor * 100));
 +    myScreenChangeCrosProp(screen_info, "_CHROME_DISPLAY_INTERNAL", screen_info->cache_monitor_internal);
++
++    g_timeout_add_seconds(1, (GSourceFunc) myScreenSetCrosDisplayProps, screen_info);
 +}
 +
 +gint myScreenGetMonitorInternal(ScreenInfo *screen_info, gint monitor_index) {
@@ -171,16 +192,17 @@
 +}
 --- a/src/screen.h
 +++ b/src/screen.h
-@@ -120,6 +120,8 @@
+@@ -120,6 +120,9 @@
  
      /* Monitor search caching */
      GdkRectangle cache_monitor;
 +    GdkRectangle cache_monitor_mm;
++    GdkRectangle cache_monitor_cros;
 +    gint cache_monitor_internal;
      gint num_monitors;
      GArray *monitors_index;
  
-@@ -246,6 +248,21 @@
+@@ -246,6 +249,19 @@
                                                                   gint,
                                                                   gint,
                                                                   GdkRectangle *);
@@ -194,9 +216,7 @@
 +void                     myScreenChangeCrosProp                 (ScreenInfo *screenInfo,
 +								 char *prop,
 +								 int value);
-+void                     myScreenSetCrosDisplayProps            (ScreenInfo *screen_info,
-+								 gint x,
-+								 gint y);
++void                     myScreenSetCrosDisplayProps            (ScreenInfo *screen_info);
 +gint                     myScreenGetMonitorInternal        (ScreenInfo *screen_info,
 +								 gint monitor_index);
  gboolean                 myScreenUpdateFontHeight               (ScreenInfo *);
