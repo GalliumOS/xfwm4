@@ -4,7 +4,7 @@
          initPerScreenCallbacks (screen_info);
  
          XDefineCursor (main_display_info->dpy, screen_info->xroot, myDisplayGetCursorRoot(main_display_info));
-+	myScreenSetCrosDisplayProps (screen_info);
++	g_timeout_add_seconds(1, myScreenSetCrosDisplayProps, screen_info);
      }
  
      /* No screen to manage, give up */
@@ -104,7 +104,7 @@
  gboolean
  myScreenUpdateFontHeight (ScreenInfo *screen_info)
  {
-@@ -848,3 +893,85 @@
+@@ -848,3 +893,83 @@
  
      return FALSE;
  }
@@ -129,7 +129,7 @@
 +    g_free(data);
 +}
 +
-+void myScreenSetCrosDisplayProps (ScreenInfo *screen_info) {
++gboolean myScreenSetCrosDisplayProps (ScreenInfo *screen_info) {
 +    float scale_factor;
 +    const float scale_factors[] = {1.0f, 1.0f, 1.25f, 1.33f, 1.4f, 1.5f, 1.8f,
 +					2.0f, 2.5f, 3.0f};
@@ -148,11 +148,9 @@
 +    if ((x >= screen_info->cache_monitor_cros.x) && (x < screen_info->cache_monitor_cros.x + screen_info->cache_monitor_cros.width) &&
 +        (y >= screen_info->cache_monitor_cros.y) && (y < screen_info->cache_monitor_cros.y + screen_info->cache_monitor_cros.height))
 +    {
-+	g_timeout_add_seconds(1, (GSourceFunc) myScreenSetCrosDisplayProps, screen_info);
-+        return;
++        return TRUE;
 +    }
 +
-+    printf("Set new scale\n");
 +    myScreenScaleAtPoint (screen_info, x, y, &scale_factor);
 +    screen_info->cache_monitor_cros = screen_info->cache_monitor;
 +    smallest_diff = diff = 0;
@@ -175,7 +173,7 @@
 +    myScreenChangeCrosProp(screen_info, "_CHROME_DISPLAY_SCALE_FACTOR", (int)(scale_factor * 100));
 +    myScreenChangeCrosProp(screen_info, "_CHROME_DISPLAY_INTERNAL", screen_info->cache_monitor_internal);
 +
-+    g_timeout_add_seconds(1, (GSourceFunc) myScreenSetCrosDisplayProps, screen_info);
++    return TRUE;
 +}
 +
 +gint myScreenGetMonitorInternal(ScreenInfo *screen_info, gint monitor_index) {
@@ -216,7 +214,7 @@
 +void                     myScreenChangeCrosProp                 (ScreenInfo *screenInfo,
 +								 char *prop,
 +								 int value);
-+void                     myScreenSetCrosDisplayProps            (ScreenInfo *screen_info);
++gboolean                 myScreenSetCrosDisplayProps            (ScreenInfo *screen_info);
 +gint                     myScreenGetMonitorInternal        (ScreenInfo *screen_info,
 +								 gint monitor_index);
  gboolean                 myScreenUpdateFontHeight               (ScreenInfo *);
