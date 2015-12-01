@@ -1,3 +1,9 @@
+xfwm4 (4.12.2-1ubuntu6) vivid; urgency=medium
+
+  * Removed patch that removed the MOVERESIZE_MOVE event
+
+ -- Hugh Greenberg <hugh@galliumos.org>  Mon, 30 Nov 2015 00:06:11 +1100
+
 xfwm4 (4.12.2-1ubuntu5) vivid; urgency=medium
 
   * Improved scaling and rotation patch
