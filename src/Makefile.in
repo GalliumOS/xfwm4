@@ -116,7 +116,8 @@ xfwm4_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
+	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_1)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
@@ -335,6 +336,7 @@ USE_NLS = @USE_NLS@
 VERSION = @VERSION@
 XGETTEXT = @XGETTEXT@
 XGETTEXT_ARGS = @XGETTEXT_ARGS@
+XI_LIBS = @XI_LIBS@
 XMKMF = @XMKMF@
 XSYNC_LIBS = @XSYNC_LIBS@
 X_CFLAGS = @X_CFLAGS@
@@ -497,6 +499,7 @@ xfwm4_LDADD = \
 	$(RENDER_LIBS)							\
 	$(COMPOSITOR_LIBS)						\
 	$(RANDR_LIBS) 							\
+	$(XI_LIBS) 							\
 	$(MATH_LIBS)
 
 EXTRA_DIST = \

@@ -645,6 +645,7 @@ ENABLE_KDE_SYSTRAY
 ENABLE_COMPOSITOR
 COMPOSITOR_LIBS
 COMPOSITOR_CFLAGS
+XI_LIBS
 RANDR_LIBS
 RENDER_LIBS
 RENDER_CFLAGS
@@ -716,6 +717,7 @@ PO_IN_DATADIR_TRUE
 INTLLIBS
 INSTOBJEXT
 GMOFILES
+DATADIRNAME
 CATOBJEXT
 CATALOGS
 MSGFMT_OPTS
@@ -748,7 +750,6 @@ build_vendor
 build_cpu
 build
 LIBTOOL
-DATADIRNAME
 ALL_LINGUAS
 INTLTOOL_PERL
 GMSGFMT
@@ -897,6 +898,7 @@ enable_startup_notification
 enable_xsync
 enable_render
 enable_randr
+enable_xi
 enable_compositor
 enable_kde_systray
 enable_debug
@@ -1570,6 +1572,8 @@ Optional Features:
   --disable-render        don't try to use the render extension
   --enable-randr          try to use the randr extension (requires render)
   --disable-randr         don't try to use the randr extension
+  --enable-xi             try to use the xi extension
+  --disable-xi            don't try to use the xi extension
   --enable-compositor     enable compositor in xfwm4 (default)
   --disable-compositor    disable compositor in xfwm4
   --enable-kde-systray    enable KDE systray proxy (deprecated)
@@ -3127,6 +3131,7 @@ END
     as_fn_error $? "Your 'rm' program is bad, sorry." "$LINENO" 5
   fi
 fi
+
 
 ac_config_headers="$ac_config_headers config.h"
 
@@ -6035,44 +6040,6 @@ fi
 # Substitute ALL_LINGUAS so we can use it in po/Makefile
 
 
-# Set DATADIRNAME correctly if it is not set yet
-# (copied from glib-gettext.m4)
-if test -z "$DATADIRNAME"; then
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-int
-main ()
-{
-extern int _nl_msg_cat_cntr;
-                       return _nl_msg_cat_cntr
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  DATADIRNAME=share
-else
-  case $host in
-    *-*-solaris*)
-                        ac_fn_c_check_func "$LINENO" "bind_textdomain_codeset" "ac_cv_func_bind_textdomain_codeset"
-if test "x$ac_cv_func_bind_textdomain_codeset" = xyes; then :
-  DATADIRNAME=share
-else
-  DATADIRNAME=lib
-fi
-
-    ;;
-    *)
-    DATADIRNAME=lib
-    ;;
-    esac
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-fi
-
-
 
 
 
@@ -6833,7 +6800,8 @@ else
     ;;
   *)
     lt_cv_sys_max_cmd_len=`(getconf ARG_MAX) 2> /dev/null`
-    if test -n "$lt_cv_sys_max_cmd_len"; then
+    if test -n "$lt_cv_sys_max_cmd_len" && \
+	test undefined != "$lt_cv_sys_max_cmd_len"; then
       lt_cv_sys_max_cmd_len=`expr $lt_cv_sys_max_cmd_len \/ 4`
       lt_cv_sys_max_cmd_len=`expr $lt_cv_sys_max_cmd_len \* 3`
     else
@@ -7234,10 +7202,6 @@ freebsd* | dragonfly*)
   fi
   ;;
 
-gnu*)
-  lt_cv_deplibs_check_method=pass_all
-  ;;
-
 haiku*)
   lt_cv_deplibs_check_method=pass_all
   ;;
@@ -7276,11 +7240,11 @@ irix5* | irix6* | nonstopux*)
   ;;
 
 # This must be glibc/ELF.
-linux* | k*bsd*-gnu | kopensolaris*-gnu)
+linux* | k*bsd*-gnu | kopensolaris*-gnu | gnu*)
   lt_cv_deplibs_check_method=pass_all
   ;;
 
-netbsd*)
+netbsd* | netbsdelf*-gnu)
   if echo __ELF__ | $CC -E - | $GREP __ELF__ > /dev/null; then
     lt_cv_deplibs_check_method='match_pattern /lib[^/]+(\.so\.[0-9]+\.[0-9]+|_pic\.a)$'
   else
@@ -8373,12 +8337,19 @@ s390*-*linux*|s390*-*tpf*|sparc*-*linux*)
 	    LD="${LD-ld} -m elf_i386_fbsd"
 	    ;;
 	  x86_64-*linux*)
-	    LD="${LD-ld} -m elf_i386"
+	    case `/usr/bin/file conftest.o` in
+	      *x86-64*)
+		LD="${LD-ld} -m elf32_x86_64"
+		;;
+	      *)
+		LD="${LD-ld} -m elf_i386"
+		;;
+	    esac
 	    ;;
-	  powerpc64le-*linux*)
+	  powerpc64le-*)
 	    LD="${LD-ld} -m elf32lppclinux"
 	    ;;
-	  powerpc64-*linux*)
+	  powerpc64-*)
 	    LD="${LD-ld} -m elf32ppclinux"
 	    ;;
 	  s390x-*linux*)
@@ -8397,10 +8368,10 @@ s390*-*linux*|s390*-*tpf*|sparc*-*linux*)
 	  x86_64-*linux*)
 	    LD="${LD-ld} -m elf_x86_64"
 	    ;;
-	  powerpcle-*linux*)
+	  powerpcle-*)
 	    LD="${LD-ld} -m elf64lppc"
 	    ;;
-	  powerpc-*linux*)
+	  powerpc-*)
 	    LD="${LD-ld} -m elf64ppc"
 	    ;;
 	  s390*-*linux*|s390*-*tpf*)
@@ -9936,7 +9907,7 @@ lt_prog_compiler_static=
       lt_prog_compiler_static='-non_shared'
       ;;
 
-    linux* | k*bsd*-gnu | kopensolaris*-gnu)
+    linux* | k*bsd*-gnu | kopensolaris*-gnu | gnu*)
       case $cc_basename in
       # old Intel for x86_64 which still supported -KPIC.
       ecc*)
@@ -10414,6 +10385,9 @@ $as_echo_n "checking whether the $compiler linker ($LD) supports shared librarie
   openbsd*)
     with_gnu_ld=no
     ;;
+  linux* | k*bsd*-gnu | gnu*)
+    link_all_deplibs=no
+    ;;
   esac
 
   ld_shlibs=yes
@@ -10635,7 +10609,7 @@ _LT_EOF
       fi
       ;;
 
-    netbsd*)
+    netbsd* | netbsdelf*-gnu)
       if echo __ELF__ | $CC -E - | $GREP __ELF__ >/dev/null; then
 	archive_cmds='$LD -Bshareable $libobjs $deplibs $linker_flags -o $lib'
 	wlarc=
@@ -10812,6 +10786,7 @@ _LT_EOF
 	if test "$aix_use_runtimelinking" = yes; then
 	  shared_flag="$shared_flag "'${wl}-G'
 	fi
+	link_all_deplibs=no
       else
 	# not using gcc
 	if test "$host_cpu" = ia64; then
@@ -11265,7 +11240,7 @@ $as_echo "$lt_cv_irix_exported_symbol" >&6; }
       link_all_deplibs=yes
       ;;
 
-    netbsd*)
+    netbsd* | netbsdelf*-gnu)
       if echo __ELF__ | $CC -E - | $GREP __ELF__ >/dev/null; then
 	archive_cmds='$LD -Bshareable -o $lib $libobjs $deplibs $linker_flags'  # a.out
       else
@@ -12102,17 +12077,6 @@ freebsd* | dragonfly*)
   esac
   ;;
 
-gnu*)
-  version_type=linux # correct to gnu/linux during the next big refactor
-  need_lib_prefix=no
-  need_version=no
-  library_names_spec='${libname}${release}${shared_ext}$versuffix ${libname}${release}${shared_ext}${major} ${libname}${shared_ext}'
-  soname_spec='${libname}${release}${shared_ext}$major'
-  shlibpath_var=LD_LIBRARY_PATH
-  shlibpath_overrides_runpath=no
-  hardcode_into_libs=yes
-  ;;
-
 haiku*)
   version_type=linux # correct to gnu/linux during the next big refactor
   need_lib_prefix=no
@@ -12229,7 +12193,7 @@ linux*oldld* | linux*aout* | linux*coff*)
   ;;
 
 # This must be glibc/ELF.
-linux* | k*bsd*-gnu | kopensolaris*-gnu)
+linux* | k*bsd*-gnu | kopensolaris*-gnu | gnu*)
   version_type=linux # correct to gnu/linux during the next big refactor
   need_lib_prefix=no
   need_version=no
@@ -12278,14 +12242,10 @@ fi
   # before this can be enabled.
   hardcode_into_libs=yes
 
-  # Add ABI-specific directories to the system library path.
-  sys_lib_dlsearch_path_spec="/lib64 /usr/lib64 /lib /usr/lib"
-
   # Append ld.so.conf contents to the search path
   if test -f /etc/ld.so.conf; then
     lt_ld_extra=`awk '/^include / { system(sprintf("cd /etc; cat %s 2>/dev/null", \$2)); skip = 1; } { if (!skip) print \$0; skip = 0; }' < /etc/ld.so.conf | $SED -e 's/#.*//;/^[	 ]*hwcap[	 ]/d;s/[:,	]/ /g;s/=[^=]*$//;s/=[^= ]* / /g;s/"//g;/^$/d' | tr '\n' ' '`
-    sys_lib_dlsearch_path_spec="$sys_lib_dlsearch_path_spec $lt_ld_extra"
-
+    sys_lib_dlsearch_path_spec="/lib /usr/lib $lt_ld_extra"
   fi
 
   # We used to test for /lib/ld.so.1 and disable shared libraries on
@@ -12295,6 +12255,18 @@ fi
   # people can always --disable-shared, the test was removed, and we
   # assume the GNU/Linux dynamic linker is in use.
   dynamic_linker='GNU/Linux ld.so'
+  ;;
+
+netbsdelf*-gnu)
+  version_type=linux
+  need_lib_prefix=no
+  need_version=no
+  library_names_spec='${libname}${release}${shared_ext}$versuffix ${libname}${release}${shared_ext}$major ${libname}${shared_ext}'
+  soname_spec='${libname}${release}${shared_ext}$major'
+  shlibpath_var=LD_LIBRARY_PATH
+  shlibpath_overrides_runpath=no
+  hardcode_into_libs=yes
+  dynamic_linker='NetBSD ld.elf_so'
   ;;
 
 netbsd*)
@@ -13511,7 +13483,7 @@ _ACEOF
 
 
 
-    ALL_LINGUAS="am ar ast be bg bn ca cs da de el en_AU en_GB eo es et eu fi fr gl he hr hu id is it ja kk ko lt lv ms nb nl nn oc pa pl pt_BR pt ro ru si sk sl sq sr sv te th tr ug uk ur_PK ur vi zh_CN zh_HK zh_TW "
+    ALL_LINGUAS=" am ar ast be bg bn ca cs da de el en_AU en_GB eo es et eu fi fr gl he hr hu id is it ja kk ko lt lv ms nb nl nn oc pa pl pt_BR pt ro ru si sk sl sq sr sv te th tr ug uk ur_PK ur vi zh_CN zh_HK zh_TW "
 
    for ac_header in locale.h
 do :
@@ -17438,6 +17410,68 @@ fi
 fi
 
 
+# Check whether --enable-xi was given.
+if test "${enable_xi+set}" = set; then :
+  enableval=$enable_xi;
+else
+  enable_xi=yes
+fi
+
+XI_LIBS=
+have_xi="no"
+if test x"$enable_xi" = x"yes"; then
+    have_xi="no"
+    ac_CFLAGS="$CFLAGS"
+    CFLAGS="$CFLAGS $LIBX11_CFLAGS"
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for XIQueryVersion in -lXi" >&5
+$as_echo_n "checking for XIQueryVersion in -lXi... " >&6; }
+if ${ac_cv_lib_Xi_XIQueryVersion+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lXi  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char XIQueryVersion ();
+int
+main ()
+{
+return XIQueryVersion ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_Xi_XIQueryVersion=yes
+else
+  ac_cv_lib_Xi_XIQueryVersion=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_Xi_XIQueryVersion" >&5
+$as_echo "$ac_cv_lib_Xi_XIQueryVersion" >&6; }
+if test "x$ac_cv_lib_Xi_XIQueryVersion" = xyes; then :
+   have_xi="yes"
+                   XI_LIBS="-lXi"
+
+$as_echo "#define HAVE_XI 1" >>confdefs.h
+
+
+fi
+
+    CFLAGS="$ac_CFLAGS"
+fi
+
+
 compositor="no"
 ENABLE_COMPOSITOR=""
 
@@ -17600,6 +17634,7 @@ $as_echo "#define DEBUG 1" >>confdefs.h
                               -Wcast-align -Wformat -Wformat-security -Wformat-y2k \
                               -Winit-self -Wmissing-include-dirs -Wundef \
                               -Wnested-externs"
+    CPPFLAGS="$CPPFLAGS"
 
     if test x`uname` = x"Linux"; then
       xdt_cv_additional_CFLAGS="$xdt_cv_additional_CFLAGS -fstack-protector"
@@ -17613,13 +17648,12 @@ $as_echo "#define DEBUG 1" >>confdefs.h
 
 $as_echo "#define DEBUG_TRACE 1" >>confdefs.h
 
-      xdt_cv_additional_CFLAGS="$xdt_cv_additional_CFLAGS -O -g -Werror"
-      CPPFLAGS="$CPPFLAGS -O -DG_ENABLE_DEBUG -D_FORTIFY_SOURCE=2 -DG_ENABLE_DEBUG"
+      xdt_cv_additional_CFLAGS="$xdt_cv_additional_CFLAGS -O0 -g -Werror"
+      CPPFLAGS="$CPPFLAGS -DG_ENABLE_DEBUG"
       { $as_echo "$as_me:${as_lineno-$LINENO}: result: full" >&5
 $as_echo "full" >&6; }
     else
-      xdt_cv_additional_CFLAGS="$xdt_cv_additional_CFLAGS -O -g"
-      CPPFLAGS="$CPPFLAGS -O -D_FORTIFY_SOURCE=1 -DG_ENABLE_DEBUG"
+      xdt_cv_additional_CFLAGS="$xdt_cv_additional_CFLAGS -g"
       { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
     fi
@@ -20118,6 +20152,7 @@ echo "  Startup notification support: $LIBSTARTUP_NOTIFICATION_FOUND"
 echo "  XSync support:                $have_xsync"
 echo "  Render support:               $have_render"
 echo "  Xrandr support:               $have_xrandr"
+echo "  XI support:                   $have_xi"
 echo "  Embedded compositor:          $compositor"
 echo "  KDE systray protocol proxy:   $kde_systray"
 echo

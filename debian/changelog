@@ -1,4 +1,11 @@
-xfwm4 (4.12.2-1ubuntu6) vivid; urgency=medium
+xfwm4 (4.12.1-1ubuntu1-galliumos1) vivid; urgency=medium
+
+  * Improved the cursor tracking needed by the scaling and rotation patch.
+    These changes are based on: http://keithp.com/blogs/Cursor_tracking/ 
+
+ -- Hugh Greenberg <hugh@galliumos.org>  Fri, 25 Dec 2015 00:06:11 +1100
+
+xfwm4 (4.12.2-1ubuntu7) vivid; urgency=medium
 
   * Removed patch that removed the MOVERESIZE_MOVE event
 
