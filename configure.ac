@@ -10,8 +10,8 @@ dnl
 
 m4_define([xfwm4_version_major], [4])
 m4_define([xfwm4_version_minor], [12])
-m4_define([xfwm4_version_micro], [1])
-m4_define([xfwm4_version_build], [6033bc1])
+m4_define([xfwm4_version_micro], [3])
+m4_define([xfwm4_version_build], [7fdcb53])
 m4_define([xfwm4_version_tag],   [])
 m4_define([xfwm4_version], [xfwm4_version_major().xfwm4_version_minor().xfwm4_version_micro()ifelse(xfwm4_version_tag(), [git], [xfwm4_version_tag().xfwm4_version_build()], [xfwm4_version_tag()])])
 
@@ -100,6 +100,17 @@ XDT_CHECK_PACKAGE([LIBXFCONF], libxfconf-0, [xfconf_minimum_version])
 XDT_CHECK_PACKAGE([LIBWNCK], [libwnck-1.0], [wnck_minimum_version])
 XDT_CHECK_PACKAGE([DBUS], [dbus-1], [1.0.0])
 XDT_CHECK_PACKAGE([DBUS_GLIB], [dbus-glib-1], [0.72])
+
+AS_IF([test "x$USE_MAINTAINER_MODE" = "xyes"],
+[
+  AC_PATH_PROG([EXO_CSOURCE], [exo-csource])
+  AS_IF([test -z "$EXO_CSOURCE"],
+  [
+    echo '*** The program "exo-csource" is required to build when --enable-maintainer-mode'
+    echo '*** is specified.'
+    exit 1
+  ])
+])
 
 dnl
 dnl Sync to vblank support
@@ -233,8 +244,8 @@ dnl Check for debugging support
 XDT_FEATURE_DEBUG
 
 REVISION=unknown
-if test x"6033bc1" != x""; then
-    REVISION=6033bc1
+if test x"7fdcb53" != x""; then
+    REVISION=7fdcb53
 fi
 AC_DEFINE_UNQUOTED([REVISION], "$REVISION", [git id])
 AC_SUBST([REVISION])

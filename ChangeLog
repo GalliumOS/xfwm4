@@ -1,3 +1,95 @@
+commit 79ac4890d2883be7b4f6c22d89c5870ff664dbb9
+Author: Olivier Fourdan <fourdan@xfce.org>
+Date:   Sat May 16 18:46:54 2015 +0200
+
+    Update for release
+    
+    Signed-off-by: Olivier Fourdan <fourdan@xfce.org>
+
+commit 7fdcb53575df2859f2b37a5a3bb1663ec16baa36
+Author: Olivier Fourdan <fourdan@xfce.org>
+Date:   Fri May 15 14:29:49 2015 +0200
+
+    events: do not monitor SubstructureNotifyMask
+    
+    Bug: 11893
+    
+    Otherwise we may confuse clients.
+    
+    Signed-off-by: Olivier Fourdan <fourdan@xfce.org>
+
+commit 1ccf0fbdd1f8960a904e045099f4917e306b3cae
+Author: Olivier Fourdan <fourdan@xfce.org>
+Date:   Fri May 15 08:43:05 2015 +0200
+
+    focus: Ignore zero timestamp from s/n
+    
+    Applications may set their _NET_WM_USER_TIME to 0 to indicate that the
+    window should not initially focused when it is mapped, but there is no
+    indication that startup-notification given timstamp should follow the
+    same rule.
+    
+    Ignore zero timestamp from startup-notification, it will help with apps
+    not being focused when started from the panel or the desktop.
+    
+    Signed-off-by: Olivier Fourdan <fourdan@xfce.org>
+
+commit b8915ea60225d6aecb7c94c7a418fbaf5fb46087
+Author: Olivier Fourdan <fourdan@xfce.org>
+Date:   Wed Apr 29 17:29:53 2015 +0200
+
+    configure: check for exo-csource
+    
+    Bug: 11870
+    
+    exo-csource is required only for maintainer mode.
+    
+    Signed-off-by: Olivier Fourdan <fourdan@xfce.org>
+
+commit 1115091535d0c56e6fd565ed36b33af37aed4f69
+Author: Youri Mouton <yrmt@edgebsd.org>
+Date:   Fri Mar 27 22:30:20 2015 +0100
+
+    Fix compiler warnings
+    
+    Bug: 11723
+
+commit e883c243c7cd4a21fffd7e76b5d0523b4d63b750
+Author: Olivier Fourdan <fourdan@xfce.org>
+Date:   Sun Mar 15 21:18:28 2015 +0100
+
+    Post release tag bump
+    
+    Signed-off-by: Olivier Fourdan <fourdan@xfce.org>
+
+commit 4f33f1620a6c9aa1c3f66bc5cb023646c1e9fd7a
+Author: Olivier Fourdan <fourdan@xfce.org>
+Date:   Sun Mar 15 21:11:51 2015 +0100
+
+    Update for release
+    
+    Signed-off-by: Olivier Fourdan <fourdan@xfce.org>
+
+commit 913dff98f022250597e82563d90900b38a6293bb
+Author: Olivier Fourdan <fourdan@xfce.org>
+Date:   Sun Mar 15 11:24:15 2015 +0100
+
+    Fix a mishmash between width and height
+    
+    Bug: 11700
+    
+    Duh...
+    
+    Signed-off-by: Olivier Fourdan <fourdan@xfce.org>
+
+commit 8a568f52ae7f331d5218e167099a79427f2080f0
+Author: Olivier Fourdan <fourdan@xfce.org>
+Date:   Sat Mar 14 23:44:12 2015 +0100
+
+    Post release tag bump
+    
+    Signed-off-by: Olivier Fourdan <fourdan@xfce.org>
+
 commit 89a28806cd915250a7bb52c5d846a28ec34c20cc
 Author: Olivier Fourdan <fourdan@xfce.org>
 Date:   Sat Mar 14 23:23:49 2015 +0100

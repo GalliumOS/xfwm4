@@ -80,7 +80,6 @@
     PropertyChangeMask
 
 #define CLIENT_EVENT_MASK \
-    SubstructureNotifyMask|\
     StructureNotifyMask|\
     FocusChangeMask|\
     PropertyChangeMask
@@ -543,12 +542,12 @@ clientAdjustCoordGravity (Client *c, int gravity, XWindowChanges *wc, unsigned l
 
     if (*mask & CWWidth)
     {
-        wc->width = clientCheckHeight (c, wc->width, TRUE);
+        wc->width = clientCheckWidth (c, wc->width, TRUE);
     }
 
-    if (*mask & CWWidth)
+    if (*mask & CWHeight)
     {
-        wc->height = clientCheckWidth (c, wc->height, TRUE);
+        wc->height = clientCheckHeight (c, wc->height, TRUE);
     }
 
     switch (gravity)
@@ -1804,7 +1803,7 @@ clientFrame (DisplayInfo *display_info, Window w, gboolean recapture)
     if (!FLAG_TEST (c->xfwm_flags, XFWM_FLAG_SESSION_MANAGED))
     {
         clientCoordGravitate (c, c->gravity, APPLY, &c->x, &c->y);
-        if ((attr.map_state == IsUnmapped))
+        if (attr.map_state == IsUnmapped)
         {
             clientInitPosition (c);
         }
