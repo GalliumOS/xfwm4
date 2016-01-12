@@ -1,0 +1,14 @@
+--- a/settings-dialogs/tweaks-settings.c
++++ b/settings-dialogs/tweaks-settings.c
+@@ -447,6 +447,11 @@
+     vbox = GTK_WIDGET (gtk_builder_get_object (builder, "main-vbox"));
+     gtk_widget_show_all (vbox);
+ 
++    /* Hack to hide the compositor tab */
++    GtkWidget *ctab;
++    ctab = GTK_WIDGET (gtk_builder_get_object (builder, "vbox7"));
++    gtk_widget_hide(ctab);
++
+     g_free (easy_click);
+     g_free (activate_action);
+ }
