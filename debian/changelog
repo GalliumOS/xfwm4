@@ -1,9 +1,16 @@
+xfwm4 (4.12.3-1ubuntu1~ubuntu15.04.1-galliumos2) vivid; urgency=medium
+
+  * Added upstream patch for notifications over fullscreen windows: 
+    https://bugzilla.xfce.org/show_bug.cgi?id=7928
+
+ -- Hugh Greenberg <hugh@galliumos.org>  Tue, 19 Jan 2016 00:06:11 +1100
+
 xfwm4 (4.12.3-1ubuntu1~ubuntu15.04.1-galliumos1) vivid; urgency=medium
 
   * Improved the cursor tracking needed by the scaling and rotation patch.
     These changes are based on: http://keithp.com/blogs/Cursor_tracking/
 
- -- Hugh Greenberg <hugh@galliumos.org>  Mon, 11 Jan 2015 00:06:11 +1100
+ -- Hugh Greenberg <hugh@galliumos.org>  Mon, 11 Jan 2016 00:06:11 +1100
 
 xfwm4 (4.12.3-1ubuntu1~ubuntu15.04.1) vivid; urgency=medium
 
