@@ -61,7 +61,7 @@
  
  static eventFilterStatus
  default_event_filter (XEvent * xevent, gpointer data)
-@@ -161,6 +164,86 @@
+@@ -161,6 +164,87 @@
      return (loop & EVENT_FILTER_REMOVE) ? GDK_FILTER_REMOVE : GDK_FILTER_CONTINUE;
  }
  
@@ -125,6 +125,7 @@
 +    switch (cookie->evtype) {
 +    case XI_RawMotion:
 +	myScreenSetCrosDisplayProps(screen_info);
++        ret = GDK_FILTER_REMOVE;
 +	break;
 +    }
 +

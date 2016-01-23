@@ -1,3 +1,9 @@
+xfwm4 (4.12.3-1ubuntu1~ubuntu15.04.1-galliumos3) vivid; urgency=medium
+
+  * return GDK_FILTER_REMOVE after receiving a raw cursor motion event
+
+ -- Hugh Greenberg <hugh@galliumos.org>  Thu, 21 Jan 2016 00:06:11 +1100
+
 xfwm4 (4.12.3-1ubuntu1~ubuntu15.04.1-galliumos2) vivid; urgency=medium
 
   * Added upstream patch for notifications over fullscreen windows: 
