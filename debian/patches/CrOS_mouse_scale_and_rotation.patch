@@ -310,8 +310,8 @@
 +
 +gboolean myScreenSetCrosDisplayProps (ScreenInfo *screen_info) {
 +    float scale_factor;
-+    const float scale_factors[] = {1.0f, 1.0f, 1.25f, 1.33f, 1.4f, 1.5f, 1.8f,
-+					2.0f, 2.5f, 3.0f};
++    const float scale_factors[] = {1.0f, 1.25f, 1.33f, 1.4f, 1.5f, 1.8f,
++				   2.0f, 2.5f, 3.0f};
 +    int i, num_factors;
 +    float smallest_diff, diff, new_scale_factor;
 +    Rotation rotation;
