@@ -1,34 +1,8 @@
-xfwm4 (4.12.3-1ubuntu1~ubuntu15.04.1-galliumos4) vivid; urgency=medium
+xfwm4 (4.12.3-1ubuntu1-galliumos1) xenial; urgency=low
 
-  * Removed duplicate scale factor in myScreenSetCrosDisplayProps
+  * Added GalliumOS patches
 
- -- Hugh Greenberg <hugh@galliumos.org>  Sat, 30 Jan 2016 00:06:11 +1100
-
-xfwm4 (4.12.3-1ubuntu1~ubuntu15.04.1-galliumos3) vivid; urgency=medium
-
-  * return GDK_FILTER_REMOVE after receiving a raw cursor motion event
-
- -- Hugh Greenberg <hugh@galliumos.org>  Thu, 21 Jan 2016 00:06:11 +1100
-
-xfwm4 (4.12.3-1ubuntu1~ubuntu15.04.1-galliumos2) vivid; urgency=medium
-
-  * Added upstream patch for notifications over fullscreen windows: 
-    https://bugzilla.xfce.org/show_bug.cgi?id=7928
-
- -- Hugh Greenberg <hugh@galliumos.org>  Tue, 19 Jan 2016 00:06:11 +1100
-
-xfwm4 (4.12.3-1ubuntu1~ubuntu15.04.1-galliumos1) vivid; urgency=medium
-
-  * Improved the cursor tracking needed by the scaling and rotation patch.
-    These changes are based on: http://keithp.com/blogs/Cursor_tracking/
-
- -- Hugh Greenberg <hugh@galliumos.org>  Mon, 11 Jan 2016 00:06:11 +1100
-
-xfwm4 (4.12.3-1ubuntu1~ubuntu15.04.1) vivid; urgency=medium
-
-  * No-change backport to vivid (LP: #1457242)
-
- -- Micah Gersten <micahg@ubuntu.com>  Wed, 20 May 2015 19:10:11 -0500
+ -- Hugh Greenberg <hugh@galliumos.org>  Sat, 12 Mar 2016 08:36:00 -0500
 
 xfwm4 (4.12.3-1ubuntu1) wily; urgency=low
 
