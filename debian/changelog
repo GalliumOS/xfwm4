@@ -1,6 +1,6 @@
 xfwm4 (4.12.3-1ubuntu1-galliumos1) xenial; urgency=low
 
-  * Added GalliumOS patches
+  * Package for GalliumOS
 
  -- Hugh Greenberg <hugh@galliumos.org>  Sat, 12 Mar 2016 08:36:00 -0500
 
