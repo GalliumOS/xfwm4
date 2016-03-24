@@ -1,3 +1,10 @@
+xfwm4 (4.12.3-1ubuntu1-galliumos2) xenial; urgency=low
+
+  * Fix for segfault at startup
+  * Disabled compositor
+
+ -- Hugh Greenberg <hugh@galliumos.org>  Wed, 23 Mar 2016 08:36:00 -0500
+
 xfwm4 (4.12.3-1ubuntu1-galliumos1) xenial; urgency=low
 
   * Package for GalliumOS

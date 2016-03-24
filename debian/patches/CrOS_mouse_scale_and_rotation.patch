@@ -223,7 +223,7 @@
  
      g_return_if_fail (screen_info != NULL);
      g_return_if_fail (rect != NULL);
-@@ -792,11 +803,17 @@
+@@ -792,11 +803,16 @@
  
          monitor_index = myScreenGetMonitorIndex (screen_info, i);
          gdk_screen_get_monitor_geometry (screen_info->gscr, monitor_index, &monitor);
@@ -236,17 +236,16 @@
          {
              screen_info->cache_monitor = monitor;
 +	    screen_info->cache_monitor_mm = monitor_mm;
-+	    screen_info->cache_monitor_internal =
-+		myScreenGetMonitorInternal(screen_info, monitor_index);
++	    screen_info->cache_monitor_internal = 1;
              *rect = screen_info->cache_monitor;
              return;
          }
-@@ -813,13 +830,41 @@
+@@ -813,13 +829,41 @@
          {
              min_distsquare = distsquare;
              nearest_monitor = monitor;
 +	    nearest_monitor_mm = monitor_mm;
-+	    internal = myScreenGetMonitorInternal(screen_info, monitor_index);
++	    internal = 1;
          }
      }
  
@@ -283,7 +282,7 @@
  gboolean
  myScreenUpdateFontHeight (ScreenInfo *screen_info)
  {
-@@ -848,3 +893,83 @@
+@@ -848,3 +892,70 @@
  
      return FALSE;
  }
@@ -354,19 +353,6 @@
 +
 +    return TRUE;
 +}
-+
-+gint myScreenGetMonitorInternal(ScreenInfo *screen_info, gint monitor_index) {
-+    gchar *plug;
-+    gint internal = 0;
-+
-+    plug = gdk_screen_get_monitor_plug_name (screen_info->gscr, monitor_index);
-+    if (!strcmp(plug, "eDP1")) {
-+	internal = 1;
-+    }
-+    g_free(plug);
-+
-+    return internal;
-+}
 --- a/src/screen.h
 +++ b/src/screen.h
 @@ -120,6 +120,9 @@
@@ -379,7 +365,7 @@
      gint num_monitors;
      GArray *monitors_index;
  
-@@ -246,6 +249,19 @@
+@@ -246,6 +249,17 @@
                                                                   gint,
                                                                   gint,
                                                                   GdkRectangle *);
@@ -394,8 +380,6 @@
 +								 char *prop,
 +								 int value);
 +gboolean                 myScreenSetCrosDisplayProps            (ScreenInfo *screen_info);
-+gint                     myScreenGetMonitorInternal        (ScreenInfo *screen_info,
-+								 gint monitor_index);
  gboolean                 myScreenUpdateFontHeight               (ScreenInfo *);
  
  #endif /* INC_SCREEN_H */
