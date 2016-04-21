@@ -1,0 +1,142 @@
+From 71d37e110d78d49a1476235aaa61e8614ca761e1 Mon Sep 17 00:00:00 2001
+From: Olivier Fourdan <fourdan@xfce.org>
+Date: Mon, 18 May 2015 22:18:48 +0200
+Subject: [PATCH] Only check for known buttons in _NET_WM_MOVERESIZE
+
+For _NET_WM_MOVERESIZE requests, if the given button does not match any
+available physical button, we would wait for that (impossible) button
+combination to be released.
+
+Check that the given button is one of the well known button or just wait
+for any button release otherwise.
+
+That fixes an issue with KDE apps where clicking on the menu bar to move
+the window would hang forever after the mouse button is depressed.
+
+Signed-off-by: Olivier Fourdan <fourdan@xfce.org>
+---
+ src/moveresize.c | 28 ++++++++++++++++++++--------
+ src/netwm.c      | 22 +++-------------------
+ 2 files changed, 23 insertions(+), 27 deletions(-)
+
+diff --git a/src/moveresize.c b/src/moveresize.c
+index c605b17..411520d 100644
+--- a/src/moveresize.c
++++ b/src/moveresize.c
+@@ -618,11 +618,19 @@ static eventFilterStatus
+ clientButtonReleaseFilter (XEvent * xevent, gpointer data)
+ {
+     MoveResizeData *passdata = (MoveResizeData *) data;
++    ScreenInfo *screen_info;
++    Client *c;
++
++    c = passdata->c;
++    screen_info = c->screen_info;
+ 
+     TRACE ("entering clientButtonReleaseFilter");
+ 
+-    if ((xevent->type == ButtonRelease) &&
+-        (xevent->xbutton.button == passdata->button))
++    if ((xevent->type == ButtonRelease &&
++         (passdata->button == AnyButton ||
++          passdata->button == xevent->xbutton.button)) ||
++        (xevent->type == KeyPress &&
++         xevent->xkey.keycode == screen_info->params->keys[KEY_CANCEL].keycode))
+     {
+         gtk_main_quit ();
+         return EVENT_FILTER_STOP;
+@@ -986,7 +994,9 @@ clientMoveEventFilter (XEvent * xevent, gpointer data)
+     else if (xevent->type == ButtonRelease)
+     {
+         moving = FALSE;
+-        passdata->released = passdata->use_keys || (xevent->xbutton.button == passdata->button);
++        passdata->released = (passdata->use_keys ||
++                              passdata->button == AnyButton ||
++                              passdata->button == xevent->xbutton.button);
+     }
+     else if (xevent->type == MotionNotify)
+     {
+@@ -1175,7 +1185,7 @@ clientMove (Client * c, XEvent * ev)
+     passdata.use_keys = FALSE;
+     passdata.grab = FALSE;
+     passdata.released = FALSE;
+-    passdata.button = 0;
++    passdata.button = AnyButton;
+     passdata.is_transient = clientIsValidTransientOrModal (c);
+     passdata.move_resized = FALSE;
+     passdata.wireframe = NULL;
+@@ -1287,7 +1297,7 @@ clientMove (Client * c, XEvent * ev)
+     }
+     clientConfigure (c, &wc, changes, passdata.configure_flags);
+ 
+-    if (!passdata.released)
++    if (passdata.button != AnyButton && !passdata.released)
+     {
+         /* If this is a drag-move, wait for the button to be released.
+          * If we don't, we might get release events in the wrong place.
+@@ -1638,7 +1648,9 @@ clientResizeEventFilter (XEvent * xevent, gpointer data)
+     else if (xevent->type == ButtonRelease)
+     {
+         resizing = FALSE;
+-        passdata->released = (passdata->use_keys || (xevent->xbutton.button == passdata->button));
++        passdata->released = (passdata->use_keys ||
++                              passdata->button == AnyButton ||
++                              passdata->button == xevent->xbutton.button);
+     }
+     else if ((xevent->type == UnmapNotify) && (xevent->xunmap.window == c->window))
+     {
+@@ -1715,7 +1727,7 @@ clientResize (Client * c, int handle, XEvent * ev)
+     passdata.use_keys = FALSE;
+     passdata.grab = FALSE;
+     passdata.released = FALSE;
+-    passdata.button = 0;
++    passdata.button = AnyButton;
+     passdata.handle = handle;
+     passdata.wireframe = NULL;
+     w_orig = c->width;
+@@ -1819,7 +1831,7 @@ clientResize (Client * c, int handle, XEvent * ev)
+     }
+     clientReconfigure (c, NO_CFG_FLAG);
+ 
+-    if (!passdata.released)
++    if (passdata.button != AnyButton && !passdata.released)
+     {
+         /* If this is a drag-resize, wait for the button to be released.
+          * If we don't, we might get release events in the wrong place.
+diff --git a/src/netwm.c b/src/netwm.c
+index 93ff43f..ef3552c 100644
+--- a/src/netwm.c
++++ b/src/netwm.c
+@@ -613,26 +613,10 @@ clientNetMoveResize (Client * c, XClientMessageEvent * ev)
+     button = (int) ev->data.l[3];
+     event  = (XEvent *) ev;
+ 
+-    if (button == 0)
++    /* We don't deal with button > 7, in such a case we pretent it's just any button */
++    if (button > Button7)
+     {
+-        button_mask = getMouseXY (screen_info, c->window, &dx, &dy);
+-        if (button_mask & Button1Mask)
+-        {
+-            button = Button1;
+-        }
+-        else if (button_mask & Button2Mask)
+-        {
+-            button = Button2;
+-        }
+-        else if (button_mask & Button3Mask)
+-        {
+-            button = Button3;
+-        }
+-        else
+-        {
+-            /* Fallback */
+-            button = Button1;
+-        }
++        button = AnyButton;
+     }
+ 
+     corner = CORNER_BOTTOM_RIGHT;
+-- 
+2.8.0.rc3
+
