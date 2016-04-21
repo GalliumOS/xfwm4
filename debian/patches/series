@@ -1,0 +1,4 @@
+0001-Only-check-for-known-buttons-in-_NET_WM_MOVERESIZE.patch
+disable-compositor.patch
+CrOS_mouse_scale_and_rotation.patch
+Stack-notifications-on-top-of-fullscreen-windows-bug.patch

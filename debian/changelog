@@ -1,3 +1,16 @@
+xfwm4 (4.12.3-1ubuntu2-galliumos1) xenon; urgency=medium
+
+  * Re-apply GalliumOS patches
+    - debian/patches/CrOS_mouse_scale_and_rotation.patch
+    - debian/patches/disable-compositor.patch
+    - debian/patches/Stack-notifications-on-top-of-fullscreen-windows-bug.patch
+    - debian/rules: add --disable-compositor to dh_auto_configure
+    - add debian/galliumos/upstream
+  * Add 0001-Only-check-for-known-buttons-in-_NET_WM_MOVERESIZE.patch to
+    debian/patches/series
+
+ -- reynhout <reynhout@galliumos.org>  Thu, 21 Apr 2016 21:42:37 +0000
+
 xfwm4 (4.12.3-1ubuntu2) xenial; urgency=medium
 
   * Merge from Debian unreleased VCS (LP: #1535112), remaining changes:

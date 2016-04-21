@@ -1,0 +1,3255 @@
+--- a/configure.ac
++++ b/configure.ac
+@@ -78,7 +78,7 @@
+ AC_SUBST([MATH_LIBS])
+ 
+ dnl Check for i18n support
+-XDT_I18N([am ar ast be bg bn ca cs da de el en_AU en_GB eo es et eu fi fr gl he hr hu id is it ja kk ko lt lv ms nb nl nn oc pa pl pt_BR pt ro ru si sk sl sq sr sv te th tr ug uk ur_PK ur vi zh_CN zh_HK zh_TW ])
++XDT_I18N([ am ar ast be bg bn ca cs da de el en_AU en_GB eo es et eu fi fr gl he hr hu id is it ja kk ko lt lv ms nb nl nn oc pa pl pt_BR pt ro ru si sk sl sq sr sv te th tr ug uk ur_PK ur vi zh_CN zh_HK zh_TW ])
+ 
+ dnl Check for X11 window system
+ XDT_CHECK_LIBX11_REQUIRE
+@@ -201,6 +201,28 @@
+ AC_SUBST([RANDR_LIBS])
+ 
+ dnl
++dnl Xi extension
++dnl
++AC_ARG_ENABLE([xi],
++AC_HELP_STRING([--enable-xi], [try to use the xi extension])
++AC_HELP_STRING([--disable-xi], [don't try to use the xi extension]),
++  [], [enable_xi=yes])
++XI_LIBS=
++have_xi="no"
++if test x"$enable_xi" = x"yes"; then
++    have_xi="no"
++    ac_CFLAGS="$CFLAGS"
++    CFLAGS="$CFLAGS $LIBX11_CFLAGS"
++    AC_CHECK_LIB([Xi], [XIQueryVersion],
++                 [ have_xi="yes"
++                   XI_LIBS="-lXi"
++                   AC_DEFINE([HAVE_XI], [1], [Define to enable xi])
++                 ],[])
++    CFLAGS="$ac_CFLAGS"
++fi
++AC_SUBST([XI_LIBS])
++
++dnl
+ dnl Xcomposite and related extensions
+ dnl
+ compositor="no"
+@@ -276,6 +298,7 @@
+ echo "  XSync support:                $have_xsync"
+ echo "  Render support:               $have_render"
+ echo "  Xrandr support:               $have_xrandr"
++echo "  XI support:                   $have_xi"
+ echo "  Embedded compositor:          $compositor"
+ echo "  KDE systray protocol proxy:   $kde_systray"
+ echo
+--- a/src/event_filter.c
++++ b/src/event_filter.c
+@@ -28,9 +28,12 @@
+ #include <gdk/gdk.h>
+ #include <gdk/gdkx.h>
+ #include <X11/Xlib.h>
++#include <X11/extensions/XInput2.h>
+ 
+ #include <libxfce4util/libxfce4util.h>
+ #include "event_filter.h"
++#include "screen.h"
++#include "display.h"
+ 
+ static eventFilterStatus
+ default_event_filter (XEvent * xevent, gpointer data)
+@@ -161,6 +164,87 @@
+     return (loop & EVENT_FILTER_REMOVE) ? GDK_FILTER_REMOVE : GDK_FILTER_CONTINUE;
+ }
+ 
++//From: http://keithp.com/blogs/Cursor_tracking/
++/* Return 1 if XI2 is available, 0 otherwise */
++int has_xi2(Display *dpy)
++{
++    int major, minor;
++    int rc;
++
++    /* We support XI 2.2 */
++    major = 2;
++    minor = 2;
++
++    rc = XIQueryVersion(dpy, &major, &minor);
++    if (rc == BadRequest) {
++      TRACE("No XI2 support. Server supports version %d.%d only.", major, minor);
++    return 0;
++    } else if (rc != Success) {
++      TRACE("Internal Error! This is a bug in Xlib.");
++    }
++
++    TRACE("XI2 supported. Server provides version %d.%d.", major, minor);
++
++    return 1;
++}
++
++//From: http://keithp.com/blogs/Cursor_tracking/
++void select_raw_motion_events(Display *dpy, Window win)
++{
++    XIEventMask evmasks[1];
++    unsigned char mask1[(XI_LASTEVENT + 7)/8];
++
++    memset(mask1, 0, sizeof(mask1));
++
++    /* select for button and key events from all master devices */
++    XISetMask(mask1, XI_RawMotion);
++
++    evmasks[0].deviceid = XIAllMasterDevices;
++    evmasks[0].mask_len = sizeof(mask1);
++    evmasks[0].mask = mask1;
++
++    XISelectEvents(dpy, win, evmasks, 1);
++    XFlush(dpy);
++}
++
++static GdkFilterReturn
++eventXfwmRawFilter (GdkXEvent * gdk_xevent, GdkEvent * event, gpointer data) {
++    XGenericEventCookie *cookie;
++    XEvent *xevent;
++    ScreenInfo *screen_info;
++    int ret;
++
++    ret = GDK_FILTER_CONTINUE;
++    screen_info = (ScreenInfo *) data;
++    xevent = (XEvent *) gdk_xevent;
++    cookie = &xevent->xcookie;
++    if (cookie->type != GenericEvent)
++	return ret;
++
++    switch (cookie->evtype) {
++    case XI_RawMotion:
++	myScreenSetCrosDisplayProps(screen_info);
++        ret = GDK_FILTER_REMOVE;
++	break;
++    }
++
++    return ret;
++}
++
++gboolean eventXfwmRawFilterInit(Display *dpy, gpointer data) {
++  ScreenInfo *screen_info;
++
++  screen_info = (ScreenInfo *) data;
++  if (!has_xi2(dpy)) {
++    return FALSE;
++  }
++
++  select_raw_motion_events(dpy, screen_info->xroot);
++  gdk_window_add_filter (NULL, eventXfwmRawFilter, data);
++
++  return TRUE;
++}
++
+ eventFilterStack *
+ eventFilterPush (eventFilterSetup *setup, XfwmFilter filter, gpointer data)
+ {
+--- a/src/event_filter.h
++++ b/src/event_filter.h
+@@ -64,5 +64,6 @@
+ eventFilterStack        *eventFilterPop                         (eventFilterSetup *);
+ eventFilterSetup        *eventFilterInit                        (gpointer);
+ void                     eventFilterClose                       (eventFilterSetup *);
++gboolean                eventXfwmRawFilterInit                  (Display *dpy, gpointer screen_info);
+ 
+ #endif /* INC_EVENT_FILTER_H */
+--- a/src/events.c
++++ b/src/events.c
+@@ -2779,6 +2779,7 @@
+     }
+ 
+     clientScreenResize (screen_info, FALSE);
++    myScreenSetCrosDisplayProps (screen_info);
+ }
+ 
+ /*
+@@ -2837,6 +2838,7 @@
+     }
+ 
+     clientScreenResize (screen_info, (screen_info->num_monitors < previous_num_monitors));
++    myScreenSetCrosDisplayProps (screen_info);
+ }
+ 
+ void
+--- a/src/main.c
++++ b/src/main.c
+@@ -550,6 +550,8 @@
+         initPerScreenCallbacks (screen_info);
+ 
+         XDefineCursor (main_display_info->dpy, screen_info->xroot, myDisplayGetCursorRoot(main_display_info));
++	myScreenSetCrosDisplayProps(screen_info);
++	eventXfwmRawFilterInit(main_display_info->dpy, screen_info);
+     }
+ 
+     /* No screen to manage, give up */
+--- a/src/screen.c
++++ b/src/screen.c
+@@ -33,6 +33,7 @@
+ #include <gtk/gtk.h>
+ #include <pango/pango.h>
+ #include <libxfce4util/libxfce4util.h>
++#include <math.h>
+ 
+ #ifdef HAVE_RENDER
+ #include <X11/extensions/Xrender.h>
+@@ -757,6 +758,14 @@
+     screen_info->cache_monitor.y = -1;
+     screen_info->cache_monitor.width = 0;
+     screen_info->cache_monitor.height = 0;
++    screen_info->cache_monitor_mm.x = -1;
++    screen_info->cache_monitor_mm.y = -1;
++    screen_info->cache_monitor_mm.width = 0;
++    screen_info->cache_monitor_mm.height = 0;
++    screen_info->cache_monitor_cros.x = -1;
++    screen_info->cache_monitor_cros.y = -1;
++    screen_info->cache_monitor_cros.width = 0;
++    screen_info->cache_monitor_cros.height = 0;
+ }
+ 
+ /*
+@@ -768,7 +777,9 @@
+ {
+     gint dx, dy, center_x, center_y, num_monitors, i;
+     guint32 distsquare, min_distsquare;
+-    GdkRectangle monitor, nearest_monitor = { G_MAXINT, G_MAXINT, 0, 0 };
++    GdkRectangle monitor, monitor_mm, nearest_monitor, nearest_monitor_mm =
++	{ G_MAXINT, G_MAXINT, 0, 0 };
++    gint internal = 0;
+ 
+     g_return_if_fail (screen_info != NULL);
+     g_return_if_fail (rect != NULL);
+@@ -792,11 +803,16 @@
+ 
+         monitor_index = myScreenGetMonitorIndex (screen_info, i);
+         gdk_screen_get_monitor_geometry (screen_info->gscr, monitor_index, &monitor);
++	monitor_mm = monitor;
++	monitor_mm.width = gdk_screen_get_monitor_width_mm (screen_info->gscr, monitor_index);
++	monitor_mm.height = gdk_screen_get_monitor_height_mm (screen_info->gscr, monitor_index);
+ 
+         if ((x >= monitor.x) && (x < (monitor.x + monitor.width)) &&
+             (y >= monitor.y) && (y < (monitor.y + monitor.height)))
+         {
+             screen_info->cache_monitor = monitor;
++	    screen_info->cache_monitor_mm = monitor_mm;
++	    screen_info->cache_monitor_internal = 1;
+             *rect = screen_info->cache_monitor;
+             return;
+         }
+@@ -813,13 +829,41 @@
+         {
+             min_distsquare = distsquare;
+             nearest_monitor = monitor;
++	    nearest_monitor_mm = monitor_mm;
++	    internal = 1;
+         }
+     }
+ 
+     screen_info->cache_monitor = nearest_monitor;
++    screen_info->cache_monitor_mm = nearest_monitor_mm;
++    screen_info->cache_monitor_internal = internal;
+     *rect = screen_info->cache_monitor;
+ }
+ 
++void
++myScreenFindMonitorMMAtPoint (ScreenInfo *screen_info, gint x, gint y, GdkRectangle *rect)
++{
++    GdkRectangle monitor;
++
++    myScreenFindMonitorAtPoint (screen_info, x, y, &monitor);
++    *rect = screen_info->cache_monitor_mm;
++}
++
++void
++myScreenScaleAtPoint (ScreenInfo *screen_info, gint x, gint y, float *scale_factor) {
++    GdkRectangle rect;
++    float dpi;
++
++    myScreenFindMonitorMMAtPoint (screen_info, x, y, &rect);
++    dpi = screen_info->cache_monitor.width / (screen_info->cache_monitor_mm.width / 25.4);
++
++    if (dpi <= 0) {
++	dpi = 96.0f;
++    }
++
++    *scale_factor = dpi/96.0f;
++}
++
+ gboolean
+ myScreenUpdateFontHeight (ScreenInfo *screen_info)
+ {
+@@ -848,3 +892,70 @@
+ 
+     return FALSE;
+ }
++
++void myScreenChangeCrosProp(ScreenInfo *screenInfo, char *prop, int value) {
++    glong    *data;
++    Atom name, type;
++
++    data = g_malloc(sizeof(glong));
++    data[0] = value;
++    name = XInternAtom(screenInfo->display_info->dpy, prop, FALSE);
++    type = XInternAtom(screenInfo->display_info->dpy, "CARDINAL", FALSE);
++    XChangeProperty(screenInfo->display_info->dpy,
++		    screenInfo->xroot,
++		    name,
++		    type,
++		    32,
++		    PropModeReplace,
++		    (unsigned char *)data,
++		    1);
++
++    g_free(data);
++}
++
++gboolean myScreenSetCrosDisplayProps (ScreenInfo *screen_info) {
++    float scale_factor;
++    const float scale_factors[] = {1.0f, 1.25f, 1.33f, 1.4f, 1.5f, 1.8f,
++				   2.0f, 2.5f, 3.0f};
++    int i, num_factors;
++    float smallest_diff, diff, new_scale_factor;
++    Rotation rotation;
++    XRRScreenConfiguration *conf;
++    Window dr, window;
++    unsigned int modifiers;
++    int x, y, wx, wy;
++
++    XQueryPointer (myScreenGetXDisplay (screen_info), screen_info->xroot,
++                   &dr, &window, &x, &y, &wx, &wy, &modifiers);
++
++    /* Cache system */
++    if ((x >= screen_info->cache_monitor_cros.x) && (x < screen_info->cache_monitor_cros.x + screen_info->cache_monitor_cros.width) &&
++        (y >= screen_info->cache_monitor_cros.y) && (y < screen_info->cache_monitor_cros.y + screen_info->cache_monitor_cros.height))
++    {
++        return TRUE;
++    }
++
++    myScreenScaleAtPoint (screen_info, x, y, &scale_factor);
++    screen_info->cache_monitor_cros = screen_info->cache_monitor;
++    smallest_diff = diff = 0;
++    new_scale_factor = scale_factor;
++    num_factors = sizeof(scale_factors)/sizeof(scale_factors[0]);
++    for (i = 0; i < num_factors; i++) {
++	diff = fabs(scale_factor - scale_factors[i]);
++	if (!i || diff < smallest_diff) {
++	    smallest_diff = diff;
++	    new_scale_factor = scale_factors[i];
++	}
++    }
++
++    scale_factor = new_scale_factor;
++
++    conf = XRRGetScreenInfo(screen_info->display_info->dpy, screen_info->xroot);
++    XRRConfigCurrentConfiguration(conf, &rotation);
++
++    myScreenChangeCrosProp(screen_info, "_CHROME_DISPLAY_ROTATION", rotation);
++    myScreenChangeCrosProp(screen_info, "_CHROME_DISPLAY_SCALE_FACTOR", (int)(scale_factor * 100));
++    myScreenChangeCrosProp(screen_info, "_CHROME_DISPLAY_INTERNAL", screen_info->cache_monitor_internal);
++
++    return TRUE;
++}
+--- a/src/screen.h
++++ b/src/screen.h
+@@ -120,6 +120,9 @@
+ 
+     /* Monitor search caching */
+     GdkRectangle cache_monitor;
++    GdkRectangle cache_monitor_mm;
++    GdkRectangle cache_monitor_cros;
++    gint cache_monitor_internal;
+     gint num_monitors;
+     GArray *monitors_index;
+ 
+@@ -246,6 +249,17 @@
+                                                                  gint,
+                                                                  gint,
+                                                                  GdkRectangle *);
++void                     myScreenFindMonitorMMAtPoint           (ScreenInfo *screen_info,
++								 gint x, gint y,
++								 GdkRectangle *rect);
++void                     myScreenScaleAtPoint                   (ScreenInfo *screen_info,
++								 gint x,
++								 gint y,
++								 float *scale_factor);
++void                     myScreenChangeCrosProp                 (ScreenInfo *screenInfo,
++								 char *prop,
++								 int value);
++gboolean                 myScreenSetCrosDisplayProps            (ScreenInfo *screen_info);
+ gboolean                 myScreenUpdateFontHeight               (ScreenInfo *);
+ 
+ #endif /* INC_SCREEN_H */
+--- a/Makefile.in
++++ b/Makefile.in
+@@ -1,7 +1,7 @@
+-# Makefile.in generated by automake 1.15 from Makefile.am.
++# Makefile.in generated by automake 1.14.1 from Makefile.am.
+ # @configure_input@
+ 
+-# Copyright (C) 1994-2014 Free Software Foundation, Inc.
++# Copyright (C) 1994-2013 Free Software Foundation, Inc.
+ 
+ # This Makefile.in is free software; the Free Software Foundation
+ # gives unlimited permission to copy and/or distribute it,
+@@ -14,17 +14,7 @@
+ 
+ @SET_MAKE@
+ VPATH = @srcdir@
+-am__is_gnu_make = { \
+-  if test -z '$(MAKELEVEL)'; then \
+-    false; \
+-  elif test -n '$(MAKE_HOST)'; then \
+-    true; \
+-  elif test -n '$(MAKE_VERSION)' && test -n '$(CURDIR)'; then \
+-    true; \
+-  else \
+-    false; \
+-  fi; \
+-}
++am__is_gnu_make = test -n '$(MAKEFILE_LIST)' && test -n '$(MAKELEVEL)'
+ am__make_running_with_option = \
+   case $${target_option-} in \
+       ?) ;; \
+@@ -88,12 +78,15 @@
+ build_triplet = @build@
+ host_triplet = @host@
+ subdir = .
++DIST_COMMON = INSTALL NEWS README AUTHORS ChangeLog \
++	$(srcdir)/Makefile.in $(srcdir)/Makefile.am \
++	$(top_srcdir)/configure $(am__configure_deps) \
++	$(srcdir)/config.h.in COPYING TODO compile config.guess \
++	config.sub depcomp install-sh missing ltmain.sh
+ ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
+ am__aclocal_m4_deps = $(top_srcdir)/configure.ac
+ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
+ 	$(ACLOCAL_M4)
+-DIST_COMMON = $(srcdir)/Makefile.am $(top_srcdir)/configure \
+-	$(am__configure_deps) $(am__DIST_COMMON)
+ am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
+  configure.lineno config.status.lineno
+ mkinstalldirs = $(install_sh) -d
+@@ -157,9 +150,6 @@
+ CTAGS = ctags
+ CSCOPE = cscope
+ DIST_SUBDIRS = $(SUBDIRS)
+-am__DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/config.h.in AUTHORS \
+-	COPYING ChangeLog INSTALL NEWS README TODO compile \
+-	config.guess config.sub depcomp install-sh ltmain.sh missing
+ DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
+ distdir = $(PACKAGE)-$(VERSION)
+ top_distdir = $(distdir)
+@@ -353,6 +343,7 @@
+ VERSION = @VERSION@
+ XGETTEXT = @XGETTEXT@
+ XGETTEXT_ARGS = @XGETTEXT_ARGS@
++XI_LIBS = @XI_LIBS@
+ XMKMF = @XMKMF@
+ XSYNC_LIBS = @XSYNC_LIBS@
+ X_CFLAGS = @X_CFLAGS@
+@@ -453,6 +444,7 @@
+ 	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu Makefile'; \
+ 	$(am__cd) $(top_srcdir) && \
+ 	  $(AUTOMAKE) --gnu Makefile
++.PRECIOUS: Makefile
+ Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
+ 	@case '$?' in \
+ 	  *config.status*) \
+@@ -685,15 +677,15 @@
+ 	$(am__post_remove_distdir)
+ 
+ dist-tarZ: distdir
+-	@echo WARNING: "Support for distribution archives compressed with" \
+-		       "legacy program 'compress' is deprecated." >&2
++	@echo WARNING: "Support for shar distribution archives is" \
++	               "deprecated." >&2
+ 	@echo WARNING: "It will be removed altogether in Automake 2.0" >&2
+ 	tardir=$(distdir) && $(am__tar) | compress -c >$(distdir).tar.Z
+ 	$(am__post_remove_distdir)
+ 
+ dist-shar: distdir
+-	@echo WARNING: "Support for shar distribution archives is" \
+-	               "deprecated." >&2
++	@echo WARNING: "Support for distribution archives compressed with" \
++		       "legacy program 'compress' is deprecated." >&2
+ 	@echo WARNING: "It will be removed altogether in Automake 2.0" >&2
+ 	shar $(distdir) | GZIP=$(GZIP_ENV) gzip -c >$(distdir).shar.gz
+ 	$(am__post_remove_distdir)
+@@ -729,17 +721,17 @@
+ 	esac
+ 	chmod -R a-w $(distdir)
+ 	chmod u+w $(distdir)
+-	mkdir $(distdir)/_build $(distdir)/_build/sub $(distdir)/_inst
++	mkdir $(distdir)/_build $(distdir)/_inst
+ 	chmod a-w $(distdir)
+ 	test -d $(distdir)/_build || exit 0; \
+ 	dc_install_base=`$(am__cd) $(distdir)/_inst && pwd | sed -e 's,^[^:\\/]:[\\/],/,'` \
+ 	  && dc_destdir="$${TMPDIR-/tmp}/am-dc-$$$$/" \
+ 	  && am__cwd=`pwd` \
+-	  && $(am__cd) $(distdir)/_build/sub \
+-	  && ../../configure \
++	  && $(am__cd) $(distdir)/_build \
++	  && ../configure \
+ 	    $(AM_DISTCHECK_CONFIGURE_FLAGS) \
+ 	    $(DISTCHECK_CONFIGURE_FLAGS) \
+-	    --srcdir=../.. --prefix="$$dc_install_base" \
++	    --srcdir=.. --prefix="$$dc_install_base" \
+ 	  && $(MAKE) $(AM_MAKEFLAGS) \
+ 	  && $(MAKE) $(AM_MAKEFLAGS) dvi \
+ 	  && $(MAKE) $(AM_MAKEFLAGS) check \
+@@ -915,8 +907,6 @@
+ 	mostlyclean mostlyclean-generic mostlyclean-libtool pdf pdf-am \
+ 	ps ps-am tags tags-am uninstall uninstall-am
+ 
+-.PRECIOUS: Makefile
+-
+ @SET_MAKE@
+ 
+ distclean-local:
+--- a/aclocal.m4
++++ b/aclocal.m4
+@@ -1,6 +1,6 @@
+-# generated automatically by aclocal 1.15 -*- Autoconf -*-
++# generated automatically by aclocal 1.14.1 -*- Autoconf -*-
+ 
+-# Copyright (C) 1996-2014 Free Software Foundation, Inc.
++# Copyright (C) 1996-2013 Free Software Foundation, Inc.
+ 
+ # This file is free software; the Free Software Foundation
+ # gives unlimited permission to copy and/or distribute it,
+@@ -1964,12 +1964,19 @@
+ 	    LD="${LD-ld} -m elf_i386_fbsd"
+ 	    ;;
+ 	  x86_64-*linux*)
+-	    LD="${LD-ld} -m elf_i386"
++	    case `/usr/bin/file conftest.o` in
++	      *x86-64*)
++		LD="${LD-ld} -m elf32_x86_64"
++		;;
++	      *)
++		LD="${LD-ld} -m elf_i386"
++		;;
++	    esac
+ 	    ;;
+-	  powerpc64le-*linux*)
++	  powerpc64le-*)
+ 	    LD="${LD-ld} -m elf32lppclinux"
+ 	    ;;
+-	  powerpc64-*linux*)
++	  powerpc64-*)
+ 	    LD="${LD-ld} -m elf32ppclinux"
+ 	    ;;
+ 	  s390x-*linux*)
+@@ -1988,10 +1995,10 @@
+ 	  x86_64-*linux*)
+ 	    LD="${LD-ld} -m elf_x86_64"
+ 	    ;;
+-	  powerpcle-*linux*)
++	  powerpcle-*)
+ 	    LD="${LD-ld} -m elf64lppc"
+ 	    ;;
+-	  powerpc-*linux*)
++	  powerpc-*)
+ 	    LD="${LD-ld} -m elf64ppc"
+ 	    ;;
+ 	  s390*-*linux*|s390*-*tpf*)
+@@ -2334,7 +2341,8 @@
+     ;;
+   *)
+     lt_cv_sys_max_cmd_len=`(getconf ARG_MAX) 2> /dev/null`
+-    if test -n "$lt_cv_sys_max_cmd_len"; then
++    if test -n "$lt_cv_sys_max_cmd_len" && \
++	test undefined != "$lt_cv_sys_max_cmd_len"; then
+       lt_cv_sys_max_cmd_len=`expr $lt_cv_sys_max_cmd_len \/ 4`
+       lt_cv_sys_max_cmd_len=`expr $lt_cv_sys_max_cmd_len \* 3`
+     else
+@@ -3158,17 +3166,6 @@
+   esac
+   ;;
+ 
+-gnu*)
+-  version_type=linux # correct to gnu/linux during the next big refactor
+-  need_lib_prefix=no
+-  need_version=no
+-  library_names_spec='${libname}${release}${shared_ext}$versuffix ${libname}${release}${shared_ext}${major} ${libname}${shared_ext}'
+-  soname_spec='${libname}${release}${shared_ext}$major'
+-  shlibpath_var=LD_LIBRARY_PATH
+-  shlibpath_overrides_runpath=no
+-  hardcode_into_libs=yes
+-  ;;
+-
+ haiku*)
+   version_type=linux # correct to gnu/linux during the next big refactor
+   need_lib_prefix=no
+@@ -3285,7 +3282,7 @@
+   ;;
+ 
+ # This must be glibc/ELF.
+-linux* | k*bsd*-gnu | kopensolaris*-gnu)
++linux* | k*bsd*-gnu | kopensolaris*-gnu | gnu*)
+   version_type=linux # correct to gnu/linux during the next big refactor
+   need_lib_prefix=no
+   need_version=no
+@@ -3315,14 +3312,10 @@
+   # before this can be enabled.
+   hardcode_into_libs=yes
+ 
+-  # Add ABI-specific directories to the system library path.
+-  sys_lib_dlsearch_path_spec="/lib64 /usr/lib64 /lib /usr/lib"
+-
+   # Append ld.so.conf contents to the search path
+   if test -f /etc/ld.so.conf; then
+     lt_ld_extra=`awk '/^include / { system(sprintf("cd /etc; cat %s 2>/dev/null", \[$]2)); skip = 1; } { if (!skip) print \[$]0; skip = 0; }' < /etc/ld.so.conf | $SED -e 's/#.*//;/^[	 ]*hwcap[	 ]/d;s/[:,	]/ /g;s/=[^=]*$//;s/=[^= ]* / /g;s/"//g;/^$/d' | tr '\n' ' '`
+-    sys_lib_dlsearch_path_spec="$sys_lib_dlsearch_path_spec $lt_ld_extra"
+-
++    sys_lib_dlsearch_path_spec="/lib /usr/lib $lt_ld_extra"
+   fi
+ 
+   # We used to test for /lib/ld.so.1 and disable shared libraries on
+@@ -3334,6 +3327,18 @@
+   dynamic_linker='GNU/Linux ld.so'
+   ;;
+ 
++netbsdelf*-gnu)
++  version_type=linux
++  need_lib_prefix=no
++  need_version=no
++  library_names_spec='${libname}${release}${shared_ext}$versuffix ${libname}${release}${shared_ext}$major ${libname}${shared_ext}'
++  soname_spec='${libname}${release}${shared_ext}$major'
++  shlibpath_var=LD_LIBRARY_PATH
++  shlibpath_overrides_runpath=no
++  hardcode_into_libs=yes
++  dynamic_linker='NetBSD ld.elf_so'
++  ;;
++
+ netbsd*)
+   version_type=sunos
+   need_lib_prefix=no
+@@ -3893,10 +3898,6 @@
+   fi
+   ;;
+ 
+-gnu*)
+-  lt_cv_deplibs_check_method=pass_all
+-  ;;
+-
+ haiku*)
+   lt_cv_deplibs_check_method=pass_all
+   ;;
+@@ -3935,11 +3936,11 @@
+   ;;
+ 
+ # This must be glibc/ELF.
+-linux* | k*bsd*-gnu | kopensolaris*-gnu)
++linux* | k*bsd*-gnu | kopensolaris*-gnu | gnu*)
+   lt_cv_deplibs_check_method=pass_all
+   ;;
+ 
+-netbsd*)
++netbsd* | netbsdelf*-gnu)
+   if echo __ELF__ | $CC -E - | $GREP __ELF__ > /dev/null; then
+     lt_cv_deplibs_check_method='match_pattern /lib[[^/]]+(\.so\.[[0-9]]+\.[[0-9]]+|_pic\.a)$'
+   else
+@@ -4687,7 +4688,7 @@
+ 	    ;;
+ 	esac
+ 	;;
+-      linux* | k*bsd*-gnu | kopensolaris*-gnu)
++      linux* | k*bsd*-gnu | kopensolaris*-gnu | gnu*)
+ 	case $cc_basename in
+ 	  KCC*)
+ 	    # KAI C++ Compiler
+@@ -4751,7 +4752,7 @@
+ 	    ;;
+ 	esac
+ 	;;
+-      netbsd*)
++      netbsd* | netbsdelf*-gnu)
+ 	;;
+       *qnx* | *nto*)
+         # QNX uses GNU C++, but need to define -shared option too, otherwise
+@@ -4986,7 +4987,7 @@
+       _LT_TAGVAR(lt_prog_compiler_static, $1)='-non_shared'
+       ;;
+ 
+-    linux* | k*bsd*-gnu | kopensolaris*-gnu)
++    linux* | k*bsd*-gnu | kopensolaris*-gnu | gnu*)
+       case $cc_basename in
+       # old Intel for x86_64 which still supported -KPIC.
+       ecc*)
+@@ -5228,6 +5229,9 @@
+       ;;
+     esac
+     ;;
++  linux* | k*bsd*-gnu | gnu*)
++    _LT_TAGVAR(link_all_deplibs, $1)=no
++    ;;
+   *)
+     _LT_TAGVAR(export_symbols_cmds, $1)='$NM $libobjs $convenience | $global_symbol_pipe | $SED '\''s/.* //'\'' | sort | uniq > $export_symbols'
+     ;;
+@@ -5290,6 +5294,9 @@
+   openbsd*)
+     with_gnu_ld=no
+     ;;
++  linux* | k*bsd*-gnu | gnu*)
++    _LT_TAGVAR(link_all_deplibs, $1)=no
++    ;;
+   esac
+ 
+   _LT_TAGVAR(ld_shlibs, $1)=yes
+@@ -5511,7 +5518,7 @@
+       fi
+       ;;
+ 
+-    netbsd*)
++    netbsd* | netbsdelf*-gnu)
+       if echo __ELF__ | $CC -E - | $GREP __ELF__ >/dev/null; then
+ 	_LT_TAGVAR(archive_cmds, $1)='$LD -Bshareable $libobjs $deplibs $linker_flags -o $lib'
+ 	wlarc=
+@@ -5688,6 +5695,7 @@
+ 	if test "$aix_use_runtimelinking" = yes; then
+ 	  shared_flag="$shared_flag "'${wl}-G'
+ 	fi
++	_LT_TAGVAR(link_all_deplibs, $1)=no
+       else
+ 	# not using gcc
+ 	if test "$host_cpu" = ia64; then
+@@ -5992,7 +6000,7 @@
+       _LT_TAGVAR(link_all_deplibs, $1)=yes
+       ;;
+ 
+-    netbsd*)
++    netbsd* | netbsdelf*-gnu)
+       if echo __ELF__ | $CC -E - | $GREP __ELF__ >/dev/null; then
+ 	_LT_TAGVAR(archive_cmds, $1)='$LD -Bshareable -o $lib $libobjs $deplibs $linker_flags'  # a.out
+       else
+@@ -6868,9 +6876,6 @@
+         _LT_TAGVAR(ld_shlibs, $1)=yes
+         ;;
+ 
+-      gnu*)
+-        ;;
+-
+       haiku*)
+         _LT_TAGVAR(archive_cmds, $1)='$CC -shared $libobjs $deplibs $compiler_flags ${wl}-soname $wl$soname -o $lib'
+         _LT_TAGVAR(link_all_deplibs, $1)=yes
+@@ -7032,7 +7037,7 @@
+         _LT_TAGVAR(inherit_rpath, $1)=yes
+         ;;
+ 
+-      linux* | k*bsd*-gnu | kopensolaris*-gnu)
++      linux* | k*bsd*-gnu | kopensolaris*-gnu | gnu*)
+         case $cc_basename in
+           KCC*)
+ 	    # Kuck and Associates, Inc. (KAI) C++ Compiler
+@@ -9491,7 +9496,7 @@
+ AS_VAR_IF([$1], [""], [$5], [$4])dnl
+ ])# PKG_CHECK_VAR
+ 
+-# Copyright (C) 2002-2014 Free Software Foundation, Inc.
++# Copyright (C) 2002-2013 Free Software Foundation, Inc.
+ #
+ # This file is free software; the Free Software Foundation
+ # gives unlimited permission to copy and/or distribute it,
+@@ -9503,10 +9508,10 @@
+ # generated from the m4 files accompanying Automake X.Y.
+ # (This private macro should not be called outside this file.)
+ AC_DEFUN([AM_AUTOMAKE_VERSION],
+-[am__api_version='1.15'
++[am__api_version='1.14'
+ dnl Some users find AM_AUTOMAKE_VERSION and mistake it for a way to
+ dnl require some minimum version.  Point them to the right macro.
+-m4_if([$1], [1.15], [],
++m4_if([$1], [1.14.1], [],
+       [AC_FATAL([Do not call $0, use AM_INIT_AUTOMAKE([$1]).])])dnl
+ ])
+ 
+@@ -9522,14 +9527,14 @@
+ # Call AM_AUTOMAKE_VERSION and AM_AUTOMAKE_VERSION so they can be traced.
+ # This function is AC_REQUIREd by AM_INIT_AUTOMAKE.
+ AC_DEFUN([AM_SET_CURRENT_AUTOMAKE_VERSION],
+-[AM_AUTOMAKE_VERSION([1.15])dnl
++[AM_AUTOMAKE_VERSION([1.14.1])dnl
+ m4_ifndef([AC_AUTOCONF_VERSION],
+   [m4_copy([m4_PACKAGE_VERSION], [AC_AUTOCONF_VERSION])])dnl
+ _AM_AUTOCONF_VERSION(m4_defn([AC_AUTOCONF_VERSION]))])
+ 
+ # AM_AUX_DIR_EXPAND                                         -*- Autoconf -*-
+ 
+-# Copyright (C) 2001-2014 Free Software Foundation, Inc.
++# Copyright (C) 2001-2013 Free Software Foundation, Inc.
+ #
+ # This file is free software; the Free Software Foundation
+ # gives unlimited permission to copy and/or distribute it,
+@@ -9574,14 +9579,15 @@
+ # configured tree to be moved without reconfiguration.
+ 
+ AC_DEFUN([AM_AUX_DIR_EXPAND],
+-[AC_REQUIRE([AC_CONFIG_AUX_DIR_DEFAULT])dnl
+-# Expand $ac_aux_dir to an absolute path.
+-am_aux_dir=`cd "$ac_aux_dir" && pwd`
++[dnl Rely on autoconf to set up CDPATH properly.
++AC_PREREQ([2.50])dnl
++# expand $ac_aux_dir to an absolute path
++am_aux_dir=`cd $ac_aux_dir && pwd`
+ ])
+ 
+ # AM_CONDITIONAL                                            -*- Autoconf -*-
+ 
+-# Copyright (C) 1997-2014 Free Software Foundation, Inc.
++# Copyright (C) 1997-2013 Free Software Foundation, Inc.
+ #
+ # This file is free software; the Free Software Foundation
+ # gives unlimited permission to copy and/or distribute it,
+@@ -9612,7 +9618,7 @@
+ Usually this means the macro was only invoked conditionally.]])
+ fi])])
+ 
+-# Copyright (C) 1999-2014 Free Software Foundation, Inc.
++# Copyright (C) 1999-2013 Free Software Foundation, Inc.
+ #
+ # This file is free software; the Free Software Foundation
+ # gives unlimited permission to copy and/or distribute it,
+@@ -9803,7 +9809,7 @@
+ 
+ # Generate code to set up dependency tracking.              -*- Autoconf -*-
+ 
+-# Copyright (C) 1999-2014 Free Software Foundation, Inc.
++# Copyright (C) 1999-2013 Free Software Foundation, Inc.
+ #
+ # This file is free software; the Free Software Foundation
+ # gives unlimited permission to copy and/or distribute it,
+@@ -9879,7 +9885,7 @@
+ 
+ # Do all the work for Automake.                             -*- Autoconf -*-
+ 
+-# Copyright (C) 1996-2014 Free Software Foundation, Inc.
++# Copyright (C) 1996-2013 Free Software Foundation, Inc.
+ #
+ # This file is free software; the Free Software Foundation
+ # gives unlimited permission to copy and/or distribute it,
+@@ -9969,8 +9975,8 @@
+ # <http://lists.gnu.org/archive/html/automake/2012-07/msg00001.html>
+ # <http://lists.gnu.org/archive/html/automake/2012-07/msg00014.html>
+ AC_SUBST([mkdir_p], ['$(MKDIR_P)'])
+-# We need awk for the "check" target (and possibly the TAP driver).  The
+-# system "awk" is bad on some platforms.
++# We need awk for the "check" target.  The system "awk" is bad on
++# some platforms.
+ AC_REQUIRE([AC_PROG_AWK])dnl
+ AC_REQUIRE([AC_PROG_MAKE_SET])dnl
+ AC_REQUIRE([AM_SET_LEADING_DOT])dnl
+@@ -10044,9 +10050,6 @@
+     AC_MSG_ERROR([Your 'rm' program is bad, sorry.])
+   fi
+ fi
+-dnl The trailing newline in this macro's definition is deliberate, for
+-dnl backward compatibility and to allow trailing 'dnl'-style comments
+-dnl after the AM_INIT_AUTOMAKE invocation. See automake bug#16841.
+ ])
+ 
+ dnl Hook into '_AC_COMPILER_EXEEXT' early to learn its expansion.  Do not
+@@ -10076,7 +10079,7 @@
+ done
+ echo "timestamp for $_am_arg" >`AS_DIRNAME(["$_am_arg"])`/stamp-h[]$_am_stamp_count])
+ 
+-# Copyright (C) 2001-2014 Free Software Foundation, Inc.
++# Copyright (C) 2001-2013 Free Software Foundation, Inc.
+ #
+ # This file is free software; the Free Software Foundation
+ # gives unlimited permission to copy and/or distribute it,
+@@ -10087,7 +10090,7 @@
+ # Define $install_sh.
+ AC_DEFUN([AM_PROG_INSTALL_SH],
+ [AC_REQUIRE([AM_AUX_DIR_EXPAND])dnl
+-if test x"${install_sh+set}" != xset; then
++if test x"${install_sh}" != xset; then
+   case $am_aux_dir in
+   *\ * | *\	*)
+     install_sh="\${SHELL} '$am_aux_dir/install-sh'" ;;
+@@ -10097,7 +10100,7 @@
+ fi
+ AC_SUBST([install_sh])])
+ 
+-# Copyright (C) 2003-2014 Free Software Foundation, Inc.
++# Copyright (C) 2003-2013 Free Software Foundation, Inc.
+ #
+ # This file is free software; the Free Software Foundation
+ # gives unlimited permission to copy and/or distribute it,
+@@ -10119,7 +10122,7 @@
+ # Add --enable-maintainer-mode option to configure.         -*- Autoconf -*-
+ # From Jim Meyering
+ 
+-# Copyright (C) 1996-2014 Free Software Foundation, Inc.
++# Copyright (C) 1996-2013 Free Software Foundation, Inc.
+ #
+ # This file is free software; the Free Software Foundation
+ # gives unlimited permission to copy and/or distribute it,
+@@ -10154,7 +10157,7 @@
+ 
+ # Check to see how 'make' treats includes.	            -*- Autoconf -*-
+ 
+-# Copyright (C) 2001-2014 Free Software Foundation, Inc.
++# Copyright (C) 2001-2013 Free Software Foundation, Inc.
+ #
+ # This file is free software; the Free Software Foundation
+ # gives unlimited permission to copy and/or distribute it,
+@@ -10204,7 +10207,7 @@
+ 
+ # Fake the existence of programs that GNU maintainers use.  -*- Autoconf -*-
+ 
+-# Copyright (C) 1997-2014 Free Software Foundation, Inc.
++# Copyright (C) 1997-2013 Free Software Foundation, Inc.
+ #
+ # This file is free software; the Free Software Foundation
+ # gives unlimited permission to copy and/or distribute it,
+@@ -10243,7 +10246,7 @@
+ 
+ # Helper functions for option handling.                     -*- Autoconf -*-
+ 
+-# Copyright (C) 2001-2014 Free Software Foundation, Inc.
++# Copyright (C) 2001-2013 Free Software Foundation, Inc.
+ #
+ # This file is free software; the Free Software Foundation
+ # gives unlimited permission to copy and/or distribute it,
+@@ -10272,7 +10275,7 @@
+ AC_DEFUN([_AM_IF_OPTION],
+ [m4_ifset(_AM_MANGLE_OPTION([$1]), [$2], [$3])])
+ 
+-# Copyright (C) 1999-2014 Free Software Foundation, Inc.
++# Copyright (C) 1999-2013 Free Software Foundation, Inc.
+ #
+ # This file is free software; the Free Software Foundation
+ # gives unlimited permission to copy and/or distribute it,
+@@ -10319,7 +10322,7 @@
+ # For backward compatibility.
+ AC_DEFUN_ONCE([AM_PROG_CC_C_O], [AC_REQUIRE([AC_PROG_CC])])
+ 
+-# Copyright (C) 2001-2014 Free Software Foundation, Inc.
++# Copyright (C) 2001-2013 Free Software Foundation, Inc.
+ #
+ # This file is free software; the Free Software Foundation
+ # gives unlimited permission to copy and/or distribute it,
+@@ -10338,7 +10341,7 @@
+ 
+ # Check to make sure that the build environment is sane.    -*- Autoconf -*-
+ 
+-# Copyright (C) 1996-2014 Free Software Foundation, Inc.
++# Copyright (C) 1996-2013 Free Software Foundation, Inc.
+ #
+ # This file is free software; the Free Software Foundation
+ # gives unlimited permission to copy and/or distribute it,
+@@ -10419,7 +10422,7 @@
+ rm -f conftest.file
+ ])
+ 
+-# Copyright (C) 2009-2014 Free Software Foundation, Inc.
++# Copyright (C) 2009-2013 Free Software Foundation, Inc.
+ #
+ # This file is free software; the Free Software Foundation
+ # gives unlimited permission to copy and/or distribute it,
+@@ -10479,7 +10482,7 @@
+ _AM_SUBST_NOTMAKE([AM_BACKSLASH])dnl
+ ])
+ 
+-# Copyright (C) 2001-2014 Free Software Foundation, Inc.
++# Copyright (C) 2001-2013 Free Software Foundation, Inc.
+ #
+ # This file is free software; the Free Software Foundation
+ # gives unlimited permission to copy and/or distribute it,
+@@ -10507,7 +10510,7 @@
+ INSTALL_STRIP_PROGRAM="\$(install_sh) -c -s"
+ AC_SUBST([INSTALL_STRIP_PROGRAM])])
+ 
+-# Copyright (C) 2006-2014 Free Software Foundation, Inc.
++# Copyright (C) 2006-2013 Free Software Foundation, Inc.
+ #
+ # This file is free software; the Free Software Foundation
+ # gives unlimited permission to copy and/or distribute it,
+@@ -10526,7 +10529,7 @@
+ 
+ # Check how to create a tarball.                            -*- Autoconf -*-
+ 
+-# Copyright (C) 2004-2014 Free Software Foundation, Inc.
++# Copyright (C) 2004-2013 Free Software Foundation, Inc.
+ #
+ # This file is free software; the Free Software Foundation
+ # gives unlimited permission to copy and/or distribute it,
+--- a/config.h.in
++++ b/config.h.in
+@@ -94,6 +94,9 @@
+ /* Define to 1 if you have the <unistd.h> header file. */
+ #undef HAVE_UNISTD_H
+ 
++/* Define to enable xi */
++#undef HAVE_XI
++
+ /* Define to enable xsync */
+ #undef HAVE_XSYNC
+ 
+--- a/configure
++++ b/configure
+@@ -645,6 +645,7 @@
+ ENABLE_COMPOSITOR
+ COMPOSITOR_LIBS
+ COMPOSITOR_CFLAGS
++XI_LIBS
+ RANDR_LIBS
+ RENDER_LIBS
+ RENDER_CFLAGS
+@@ -898,6 +899,7 @@
+ enable_xsync
+ enable_render
+ enable_randr
++enable_xi
+ enable_compositor
+ enable_kde_systray
+ enable_debug
+@@ -1571,6 +1573,8 @@
+   --disable-render        don't try to use the render extension
+   --enable-randr          try to use the randr extension (requires render)
+   --disable-randr         don't try to use the randr extension
++  --enable-xi             try to use the xi extension
++  --disable-xi            don't try to use the xi extension
+   --enable-compositor     enable compositor in xfwm4 (default)
+   --disable-compositor    disable compositor in xfwm4
+   --enable-kde-systray    enable KDE systray proxy (deprecated)
+@@ -2405,7 +2409,7 @@
+ ac_compiler_gnu=$ac_cv_c_compiler_gnu
+ 
+ 
+-am__api_version='1.15'
++am__api_version='1.14'
+ 
+ ac_aux_dir=
+ for ac_dir in "$srcdir" "$srcdir/.." "$srcdir/../.."; do
+@@ -2606,8 +2610,8 @@
+ ac_script='s/[\\$]/&&/g;s/;s,x,x,$//'
+ program_transform_name=`$as_echo "$program_transform_name" | sed "$ac_script"`
+ 
+-# Expand $ac_aux_dir to an absolute path.
+-am_aux_dir=`cd "$ac_aux_dir" && pwd`
++# expand $ac_aux_dir to an absolute path
++am_aux_dir=`cd $ac_aux_dir && pwd`
+ 
+ if test x"${MISSING+set}" != xset; then
+   case $am_aux_dir in
+@@ -2626,7 +2630,7 @@
+ $as_echo "$as_me: WARNING: 'missing' script is too old or missing" >&2;}
+ fi
+ 
+-if test x"${install_sh+set}" != xset; then
++if test x"${install_sh}" != xset; then
+   case $am_aux_dir in
+   *\ * | *\	*)
+     install_sh="\${SHELL} '$am_aux_dir/install-sh'" ;;
+@@ -2954,8 +2958,8 @@
+ # <http://lists.gnu.org/archive/html/automake/2012-07/msg00014.html>
+ mkdir_p='$(MKDIR_P)'
+ 
+-# We need awk for the "check" target (and possibly the TAP driver).  The
+-# system "awk" is bad on some platforms.
++# We need awk for the "check" target.  The system "awk" is bad on
++# some platforms.
+ # Always define AMTAR for backward compatibility.  Yes, it's still used
+ # in the wild :-(  We should find a proper way to deprecate it ...
+ AMTAR='$${TAR-tar}'
+@@ -6797,7 +6801,8 @@
+     ;;
+   *)
+     lt_cv_sys_max_cmd_len=`(getconf ARG_MAX) 2> /dev/null`
+-    if test -n "$lt_cv_sys_max_cmd_len"; then
++    if test -n "$lt_cv_sys_max_cmd_len" && \
++	test undefined != "$lt_cv_sys_max_cmd_len"; then
+       lt_cv_sys_max_cmd_len=`expr $lt_cv_sys_max_cmd_len \/ 4`
+       lt_cv_sys_max_cmd_len=`expr $lt_cv_sys_max_cmd_len \* 3`
+     else
+@@ -7198,10 +7203,6 @@
+   fi
+   ;;
+ 
+-gnu*)
+-  lt_cv_deplibs_check_method=pass_all
+-  ;;
+-
+ haiku*)
+   lt_cv_deplibs_check_method=pass_all
+   ;;
+@@ -7240,11 +7241,11 @@
+   ;;
+ 
+ # This must be glibc/ELF.
+-linux* | k*bsd*-gnu | kopensolaris*-gnu)
++linux* | k*bsd*-gnu | kopensolaris*-gnu | gnu*)
+   lt_cv_deplibs_check_method=pass_all
+   ;;
+ 
+-netbsd*)
++netbsd* | netbsdelf*-gnu)
+   if echo __ELF__ | $CC -E - | $GREP __ELF__ > /dev/null; then
+     lt_cv_deplibs_check_method='match_pattern /lib[^/]+(\.so\.[0-9]+\.[0-9]+|_pic\.a)$'
+   else
+@@ -8337,12 +8338,19 @@
+ 	    LD="${LD-ld} -m elf_i386_fbsd"
+ 	    ;;
+ 	  x86_64-*linux*)
+-	    LD="${LD-ld} -m elf_i386"
++	    case `/usr/bin/file conftest.o` in
++	      *x86-64*)
++		LD="${LD-ld} -m elf32_x86_64"
++		;;
++	      *)
++		LD="${LD-ld} -m elf_i386"
++		;;
++	    esac
+ 	    ;;
+-	  powerpc64le-*linux*)
++	  powerpc64le-*)
+ 	    LD="${LD-ld} -m elf32lppclinux"
+ 	    ;;
+-	  powerpc64-*linux*)
++	  powerpc64-*)
+ 	    LD="${LD-ld} -m elf32ppclinux"
+ 	    ;;
+ 	  s390x-*linux*)
+@@ -8361,10 +8369,10 @@
+ 	  x86_64-*linux*)
+ 	    LD="${LD-ld} -m elf_x86_64"
+ 	    ;;
+-	  powerpcle-*linux*)
++	  powerpcle-*)
+ 	    LD="${LD-ld} -m elf64lppc"
+ 	    ;;
+-	  powerpc-*linux*)
++	  powerpc-*)
+ 	    LD="${LD-ld} -m elf64ppc"
+ 	    ;;
+ 	  s390*-*linux*|s390*-*tpf*)
+@@ -9900,7 +9908,7 @@
+       lt_prog_compiler_static='-non_shared'
+       ;;
+ 
+-    linux* | k*bsd*-gnu | kopensolaris*-gnu)
++    linux* | k*bsd*-gnu | kopensolaris*-gnu | gnu*)
+       case $cc_basename in
+       # old Intel for x86_64 which still supported -KPIC.
+       ecc*)
+@@ -10378,6 +10386,9 @@
+   openbsd*)
+     with_gnu_ld=no
+     ;;
++  linux* | k*bsd*-gnu | gnu*)
++    link_all_deplibs=no
++    ;;
+   esac
+ 
+   ld_shlibs=yes
+@@ -10599,7 +10610,7 @@
+       fi
+       ;;
+ 
+-    netbsd*)
++    netbsd* | netbsdelf*-gnu)
+       if echo __ELF__ | $CC -E - | $GREP __ELF__ >/dev/null; then
+ 	archive_cmds='$LD -Bshareable $libobjs $deplibs $linker_flags -o $lib'
+ 	wlarc=
+@@ -10776,6 +10787,7 @@
+ 	if test "$aix_use_runtimelinking" = yes; then
+ 	  shared_flag="$shared_flag "'${wl}-G'
+ 	fi
++	link_all_deplibs=no
+       else
+ 	# not using gcc
+ 	if test "$host_cpu" = ia64; then
+@@ -11229,7 +11241,7 @@
+       link_all_deplibs=yes
+       ;;
+ 
+-    netbsd*)
++    netbsd* | netbsdelf*-gnu)
+       if echo __ELF__ | $CC -E - | $GREP __ELF__ >/dev/null; then
+ 	archive_cmds='$LD -Bshareable -o $lib $libobjs $deplibs $linker_flags'  # a.out
+       else
+@@ -12066,17 +12078,6 @@
+   esac
+   ;;
+ 
+-gnu*)
+-  version_type=linux # correct to gnu/linux during the next big refactor
+-  need_lib_prefix=no
+-  need_version=no
+-  library_names_spec='${libname}${release}${shared_ext}$versuffix ${libname}${release}${shared_ext}${major} ${libname}${shared_ext}'
+-  soname_spec='${libname}${release}${shared_ext}$major'
+-  shlibpath_var=LD_LIBRARY_PATH
+-  shlibpath_overrides_runpath=no
+-  hardcode_into_libs=yes
+-  ;;
+-
+ haiku*)
+   version_type=linux # correct to gnu/linux during the next big refactor
+   need_lib_prefix=no
+@@ -12193,7 +12194,7 @@
+   ;;
+ 
+ # This must be glibc/ELF.
+-linux* | k*bsd*-gnu | kopensolaris*-gnu)
++linux* | k*bsd*-gnu | kopensolaris*-gnu | gnu*)
+   version_type=linux # correct to gnu/linux during the next big refactor
+   need_lib_prefix=no
+   need_version=no
+@@ -12242,14 +12243,10 @@
+   # before this can be enabled.
+   hardcode_into_libs=yes
+ 
+-  # Add ABI-specific directories to the system library path.
+-  sys_lib_dlsearch_path_spec="/lib64 /usr/lib64 /lib /usr/lib"
+-
+   # Append ld.so.conf contents to the search path
+   if test -f /etc/ld.so.conf; then
+     lt_ld_extra=`awk '/^include / { system(sprintf("cd /etc; cat %s 2>/dev/null", \$2)); skip = 1; } { if (!skip) print \$0; skip = 0; }' < /etc/ld.so.conf | $SED -e 's/#.*//;/^[	 ]*hwcap[	 ]/d;s/[:,	]/ /g;s/=[^=]*$//;s/=[^= ]* / /g;s/"//g;/^$/d' | tr '\n' ' '`
+-    sys_lib_dlsearch_path_spec="$sys_lib_dlsearch_path_spec $lt_ld_extra"
+-
++    sys_lib_dlsearch_path_spec="/lib /usr/lib $lt_ld_extra"
+   fi
+ 
+   # We used to test for /lib/ld.so.1 and disable shared libraries on
+@@ -12261,6 +12258,18 @@
+   dynamic_linker='GNU/Linux ld.so'
+   ;;
+ 
++netbsdelf*-gnu)
++  version_type=linux
++  need_lib_prefix=no
++  need_version=no
++  library_names_spec='${libname}${release}${shared_ext}$versuffix ${libname}${release}${shared_ext}$major ${libname}${shared_ext}'
++  soname_spec='${libname}${release}${shared_ext}$major'
++  shlibpath_var=LD_LIBRARY_PATH
++  shlibpath_overrides_runpath=no
++  hardcode_into_libs=yes
++  dynamic_linker='NetBSD ld.elf_so'
++  ;;
++
+ netbsd*)
+   version_type=sunos
+   need_lib_prefix=no
+@@ -13475,7 +13484,7 @@
+ 
+ 
+ 
+-    ALL_LINGUAS="am ar ast be bg bn ca cs da de el en_AU en_GB eo es et eu fi fr gl he hr hu id is it ja kk ko lt lv ms nb nl nn oc pa pl pt_BR pt ro ru si sk sl sq sr sv te th tr ug uk ur_PK ur vi zh_CN zh_HK zh_TW "
++    ALL_LINGUAS=" am ar ast be bg bn ca cs da de el en_AU en_GB eo es et eu fi fr gl he hr hu id is it ja kk ko lt lv ms nb nl nn oc pa pl pt_BR pt ro ru si sk sl sq sr sv te th tr ug uk ur_PK ur vi zh_CN zh_HK zh_TW "
+ 
+    for ac_header in locale.h
+ do :
+@@ -17454,6 +17463,68 @@
+ fi
+ 
+ 
++# Check whether --enable-xi was given.
++if test "${enable_xi+set}" = set; then :
++  enableval=$enable_xi;
++else
++  enable_xi=yes
++fi
++
++XI_LIBS=
++have_xi="no"
++if test x"$enable_xi" = x"yes"; then
++    have_xi="no"
++    ac_CFLAGS="$CFLAGS"
++    CFLAGS="$CFLAGS $LIBX11_CFLAGS"
++    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for XIQueryVersion in -lXi" >&5
++$as_echo_n "checking for XIQueryVersion in -lXi... " >&6; }
++if ${ac_cv_lib_Xi_XIQueryVersion+:} false; then :
++  $as_echo_n "(cached) " >&6
++else
++  ac_check_lib_save_LIBS=$LIBS
++LIBS="-lXi  $LIBS"
++cat confdefs.h - <<_ACEOF >conftest.$ac_ext
++/* end confdefs.h.  */
++
++/* Override any GCC internal prototype to avoid an error.
++   Use char because int might match the return type of a GCC
++   builtin and then its argument prototype would still apply.  */
++#ifdef __cplusplus
++extern "C"
++#endif
++char XIQueryVersion ();
++int
++main ()
++{
++return XIQueryVersion ();
++  ;
++  return 0;
++}
++_ACEOF
++if ac_fn_c_try_link "$LINENO"; then :
++  ac_cv_lib_Xi_XIQueryVersion=yes
++else
++  ac_cv_lib_Xi_XIQueryVersion=no
++fi
++rm -f core conftest.err conftest.$ac_objext \
++    conftest$ac_exeext conftest.$ac_ext
++LIBS=$ac_check_lib_save_LIBS
++fi
++{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_Xi_XIQueryVersion" >&5
++$as_echo "$ac_cv_lib_Xi_XIQueryVersion" >&6; }
++if test "x$ac_cv_lib_Xi_XIQueryVersion" = xyes; then :
++   have_xi="yes"
++                   XI_LIBS="-lXi"
++
++$as_echo "#define HAVE_XI 1" >>confdefs.h
++
++
++fi
++
++    CFLAGS="$ac_CFLAGS"
++fi
++
++
+ compositor="no"
+ ENABLE_COMPOSITOR=""
+ 
+@@ -20134,6 +20205,7 @@
+ echo "  XSync support:                $have_xsync"
+ echo "  Render support:               $have_render"
+ echo "  Xrandr support:               $have_xrandr"
++echo "  XI support:                   $have_xi"
+ echo "  Embedded compositor:          $compositor"
+ echo "  KDE systray protocol proxy:   $kde_systray"
+ echo
+--- a/defaults/Makefile.in
++++ b/defaults/Makefile.in
+@@ -1,7 +1,7 @@
+-# Makefile.in generated by automake 1.15 from Makefile.am.
++# Makefile.in generated by automake 1.14.1 from Makefile.am.
+ # @configure_input@
+ 
+-# Copyright (C) 1994-2014 Free Software Foundation, Inc.
++# Copyright (C) 1994-2013 Free Software Foundation, Inc.
+ 
+ # This Makefile.in is free software; the Free Software Foundation
+ # gives unlimited permission to copy and/or distribute it,
+@@ -15,17 +15,7 @@
+ @SET_MAKE@
+ 
+ VPATH = @srcdir@
+-am__is_gnu_make = { \
+-  if test -z '$(MAKELEVEL)'; then \
+-    false; \
+-  elif test -n '$(MAKE_HOST)'; then \
+-    true; \
+-  elif test -n '$(MAKE_VERSION)' && test -n '$(CURDIR)'; then \
+-    true; \
+-  else \
+-    false; \
+-  fi; \
+-}
++am__is_gnu_make = test -n '$(MAKEFILE_LIST)' && test -n '$(MAKELEVEL)'
+ am__make_running_with_option = \
+   case $${target_option-} in \
+       ?) ;; \
+@@ -89,11 +79,11 @@
+ build_triplet = @build@
+ host_triplet = @host@
+ subdir = defaults
++DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am
+ ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
+ am__aclocal_m4_deps = $(top_srcdir)/configure.ac
+ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
+ 	$(ACLOCAL_M4)
+-DIST_COMMON = $(srcdir)/Makefile.am $(am__DIST_COMMON)
+ mkinstalldirs = $(install_sh) -d
+ CONFIG_HEADER = $(top_builddir)/config.h
+ CONFIG_CLEAN_FILES =
+@@ -147,7 +137,6 @@
+ am__installdirs = "$(DESTDIR)$(defaultsdir)"
+ DATA = $(defaults_DATA)
+ am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP)
+-am__DIST_COMMON = $(srcdir)/Makefile.in
+ DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
+ ACLOCAL = @ACLOCAL@
+ ALL_LINGUAS = @ALL_LINGUAS@
+@@ -300,6 +289,7 @@
+ VERSION = @VERSION@
+ XGETTEXT = @XGETTEXT@
+ XGETTEXT_ARGS = @XGETTEXT_ARGS@
++XI_LIBS = @XI_LIBS@
+ XMKMF = @XMKMF@
+ XSYNC_LIBS = @XSYNC_LIBS@
+ X_CFLAGS = @X_CFLAGS@
+@@ -378,6 +368,7 @@
+ 	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu defaults/Makefile'; \
+ 	$(am__cd) $(top_srcdir) && \
+ 	  $(AUTOMAKE) --gnu defaults/Makefile
++.PRECIOUS: Makefile
+ Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
+ 	@case '$?' in \
+ 	  *config.status*) \
+@@ -577,8 +568,6 @@
+ 	mostlyclean-libtool pdf pdf-am ps ps-am tags-am uninstall \
+ 	uninstall-am uninstall-defaultsDATA
+ 
+-.PRECIOUS: Makefile
+-
+ 
+ # Tell versions [3.59,3.63) of GNU make to not export all variables.
+ # Otherwise a system limit (for SysV at least) may be exceeded.
+--- a/helper-dialog/Makefile.in
++++ b/helper-dialog/Makefile.in
+@@ -1,7 +1,7 @@
+-# Makefile.in generated by automake 1.15 from Makefile.am.
++# Makefile.in generated by automake 1.14.1 from Makefile.am.
+ # @configure_input@
+ 
+-# Copyright (C) 1994-2014 Free Software Foundation, Inc.
++# Copyright (C) 1994-2013 Free Software Foundation, Inc.
+ 
+ # This Makefile.in is free software; the Free Software Foundation
+ # gives unlimited permission to copy and/or distribute it,
+@@ -17,17 +17,7 @@
+ # $Id$
+ 
+ VPATH = @srcdir@
+-am__is_gnu_make = { \
+-  if test -z '$(MAKELEVEL)'; then \
+-    false; \
+-  elif test -n '$(MAKE_HOST)'; then \
+-    true; \
+-  elif test -n '$(MAKE_VERSION)' && test -n '$(CURDIR)'; then \
+-    true; \
+-  else \
+-    false; \
+-  fi; \
+-}
++am__is_gnu_make = test -n '$(MAKEFILE_LIST)' && test -n '$(MAKELEVEL)'
+ am__make_running_with_option = \
+   case $${target_option-} in \
+       ?) ;; \
+@@ -92,11 +82,12 @@
+ host_triplet = @host@
+ helper_dialog_PROGRAMS = helper-dialog$(EXEEXT)
+ subdir = helper-dialog
++DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am \
++	$(top_srcdir)/depcomp
+ ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
+ am__aclocal_m4_deps = $(top_srcdir)/configure.ac
+ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
+ 	$(ACLOCAL_M4)
+-DIST_COMMON = $(srcdir)/Makefile.am $(am__DIST_COMMON)
+ mkinstalldirs = $(install_sh) -d
+ CONFIG_HEADER = $(top_builddir)/config.h
+ CONFIG_CLEAN_FILES =
+@@ -176,7 +167,6 @@
+   done | $(am__uniquify_input)`
+ ETAGS = etags
+ CTAGS = ctags
+-am__DIST_COMMON = $(srcdir)/Makefile.in $(top_srcdir)/depcomp
+ DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
+ ACLOCAL = @ACLOCAL@
+ ALL_LINGUAS = @ALL_LINGUAS@
+@@ -329,6 +319,7 @@
+ VERSION = @VERSION@
+ XGETTEXT = @XGETTEXT@
+ XGETTEXT_ARGS = @XGETTEXT_ARGS@
++XI_LIBS = @XI_LIBS@
+ XMKMF = @XMKMF@
+ XSYNC_LIBS = @XSYNC_LIBS@
+ X_CFLAGS = @X_CFLAGS@
+@@ -426,6 +417,7 @@
+ 	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu helper-dialog/Makefile'; \
+ 	$(am__cd) $(top_srcdir) && \
+ 	  $(AUTOMAKE) --gnu helper-dialog/Makefile
++.PRECIOUS: Makefile
+ Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
+ 	@case '$?' in \
+ 	  *config.status*) \
+@@ -753,8 +745,6 @@
+ 	pdf pdf-am ps ps-am tags tags-am uninstall uninstall-am \
+ 	uninstall-helper_dialogPROGRAMS
+ 
+-.PRECIOUS: Makefile
+-
+ 
+ # Tell versions [3.59,3.63) of GNU make to not export all variables.
+ # Otherwise a system limit (for SysV at least) may be exceeded.
+--- a/icons/22x22/Makefile.in
++++ b/icons/22x22/Makefile.in
+@@ -1,7 +1,7 @@
+-# Makefile.in generated by automake 1.15 from Makefile.am.
++# Makefile.in generated by automake 1.14.1 from Makefile.am.
+ # @configure_input@
+ 
+-# Copyright (C) 1994-2014 Free Software Foundation, Inc.
++# Copyright (C) 1994-2013 Free Software Foundation, Inc.
+ 
+ # This Makefile.in is free software; the Free Software Foundation
+ # gives unlimited permission to copy and/or distribute it,
+@@ -15,17 +15,7 @@
+ @SET_MAKE@
+ 
+ VPATH = @srcdir@
+-am__is_gnu_make = { \
+-  if test -z '$(MAKELEVEL)'; then \
+-    false; \
+-  elif test -n '$(MAKE_HOST)'; then \
+-    true; \
+-  elif test -n '$(MAKE_VERSION)' && test -n '$(CURDIR)'; then \
+-    true; \
+-  else \
+-    false; \
+-  fi; \
+-}
++am__is_gnu_make = test -n '$(MAKEFILE_LIST)' && test -n '$(MAKELEVEL)'
+ am__make_running_with_option = \
+   case $${target_option-} in \
+       ?) ;; \
+@@ -89,11 +79,11 @@
+ build_triplet = @build@
+ host_triplet = @host@
+ subdir = icons/22x22
++DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am
+ ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
+ am__aclocal_m4_deps = $(top_srcdir)/configure.ac
+ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
+ 	$(ACLOCAL_M4)
+-DIST_COMMON = $(srcdir)/Makefile.am $(am__DIST_COMMON)
+ mkinstalldirs = $(install_sh) -d
+ CONFIG_HEADER = $(top_builddir)/config.h
+ CONFIG_CLEAN_FILES =
+@@ -147,7 +137,6 @@
+ am__installdirs = "$(DESTDIR)$(actionsiconsdir)"
+ DATA = $(actionsicons_DATA)
+ am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP)
+-am__DIST_COMMON = $(srcdir)/Makefile.in
+ DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
+ ACLOCAL = @ACLOCAL@
+ ALL_LINGUAS = @ALL_LINGUAS@
+@@ -300,6 +289,7 @@
+ VERSION = @VERSION@
+ XGETTEXT = @XGETTEXT@
+ XGETTEXT_ARGS = @XGETTEXT_ARGS@
++XI_LIBS = @XI_LIBS@
+ XMKMF = @XMKMF@
+ XSYNC_LIBS = @XSYNC_LIBS@
+ X_CFLAGS = @X_CFLAGS@
+@@ -388,6 +378,7 @@
+ 	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu icons/22x22/Makefile'; \
+ 	$(am__cd) $(top_srcdir) && \
+ 	  $(AUTOMAKE) --gnu icons/22x22/Makefile
++.PRECIOUS: Makefile
+ Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
+ 	@case '$?' in \
+ 	  *config.status*) \
+@@ -587,8 +578,6 @@
+ 	mostlyclean-libtool pdf pdf-am ps ps-am tags-am uninstall \
+ 	uninstall-actionsiconsDATA uninstall-am
+ 
+-.PRECIOUS: Makefile
+-
+ 
+ # Tell versions [3.59,3.63) of GNU make to not export all variables.
+ # Otherwise a system limit (for SysV at least) may be exceeded.
+--- a/icons/48x48/Makefile.in
++++ b/icons/48x48/Makefile.in
+@@ -1,7 +1,7 @@
+-# Makefile.in generated by automake 1.15 from Makefile.am.
++# Makefile.in generated by automake 1.14.1 from Makefile.am.
+ # @configure_input@
+ 
+-# Copyright (C) 1994-2014 Free Software Foundation, Inc.
++# Copyright (C) 1994-2013 Free Software Foundation, Inc.
+ 
+ # This Makefile.in is free software; the Free Software Foundation
+ # gives unlimited permission to copy and/or distribute it,
+@@ -15,17 +15,7 @@
+ @SET_MAKE@
+ 
+ VPATH = @srcdir@
+-am__is_gnu_make = { \
+-  if test -z '$(MAKELEVEL)'; then \
+-    false; \
+-  elif test -n '$(MAKE_HOST)'; then \
+-    true; \
+-  elif test -n '$(MAKE_VERSION)' && test -n '$(CURDIR)'; then \
+-    true; \
+-  else \
+-    false; \
+-  fi; \
+-}
++am__is_gnu_make = test -n '$(MAKEFILE_LIST)' && test -n '$(MAKELEVEL)'
+ am__make_running_with_option = \
+   case $${target_option-} in \
+       ?) ;; \
+@@ -89,11 +79,11 @@
+ build_triplet = @build@
+ host_triplet = @host@
+ subdir = icons/48x48
++DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am
+ ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
+ am__aclocal_m4_deps = $(top_srcdir)/configure.ac
+ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
+ 	$(ACLOCAL_M4)
+-DIST_COMMON = $(srcdir)/Makefile.am $(am__DIST_COMMON)
+ mkinstalldirs = $(install_sh) -d
+ CONFIG_HEADER = $(top_builddir)/config.h
+ CONFIG_CLEAN_FILES =
+@@ -147,7 +137,6 @@
+ am__installdirs = "$(DESTDIR)$(iconsdir)"
+ DATA = $(icons_DATA)
+ am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP)
+-am__DIST_COMMON = $(srcdir)/Makefile.in
+ DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
+ ACLOCAL = @ACLOCAL@
+ ALL_LINGUAS = @ALL_LINGUAS@
+@@ -300,6 +289,7 @@
+ VERSION = @VERSION@
+ XGETTEXT = @XGETTEXT@
+ XGETTEXT_ARGS = @XGETTEXT_ARGS@
++XI_LIBS = @XI_LIBS@
+ XMKMF = @XMKMF@
+ XSYNC_LIBS = @XSYNC_LIBS@
+ X_CFLAGS = @X_CFLAGS@
+@@ -382,6 +372,7 @@
+ 	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu icons/48x48/Makefile'; \
+ 	$(am__cd) $(top_srcdir) && \
+ 	  $(AUTOMAKE) --gnu icons/48x48/Makefile
++.PRECIOUS: Makefile
+ Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
+ 	@case '$?' in \
+ 	  *config.status*) \
+@@ -580,8 +571,6 @@
+ 	mostlyclean mostlyclean-generic mostlyclean-libtool pdf pdf-am \
+ 	ps ps-am tags-am uninstall uninstall-am uninstall-iconsDATA
+ 
+-.PRECIOUS: Makefile
+-
+ 
+ # Tell versions [3.59,3.63) of GNU make to not export all variables.
+ # Otherwise a system limit (for SysV at least) may be exceeded.
+--- a/icons/Makefile.in
++++ b/icons/Makefile.in
+@@ -1,7 +1,7 @@
+-# Makefile.in generated by automake 1.15 from Makefile.am.
++# Makefile.in generated by automake 1.14.1 from Makefile.am.
+ # @configure_input@
+ 
+-# Copyright (C) 1994-2014 Free Software Foundation, Inc.
++# Copyright (C) 1994-2013 Free Software Foundation, Inc.
+ 
+ # This Makefile.in is free software; the Free Software Foundation
+ # gives unlimited permission to copy and/or distribute it,
+@@ -14,17 +14,7 @@
+ 
+ @SET_MAKE@
+ VPATH = @srcdir@
+-am__is_gnu_make = { \
+-  if test -z '$(MAKELEVEL)'; then \
+-    false; \
+-  elif test -n '$(MAKE_HOST)'; then \
+-    true; \
+-  elif test -n '$(MAKE_VERSION)' && test -n '$(CURDIR)'; then \
+-    true; \
+-  else \
+-    false; \
+-  fi; \
+-}
++am__is_gnu_make = test -n '$(MAKEFILE_LIST)' && test -n '$(MAKELEVEL)'
+ am__make_running_with_option = \
+   case $${target_option-} in \
+       ?) ;; \
+@@ -88,11 +78,11 @@
+ build_triplet = @build@
+ host_triplet = @host@
+ subdir = icons
++DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am
+ ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
+ am__aclocal_m4_deps = $(top_srcdir)/configure.ac
+ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
+ 	$(ACLOCAL_M4)
+-DIST_COMMON = $(srcdir)/Makefile.am $(am__DIST_COMMON)
+ mkinstalldirs = $(install_sh) -d
+ CONFIG_HEADER = $(top_builddir)/config.h
+ CONFIG_CLEAN_FILES =
+@@ -152,7 +142,6 @@
+ ETAGS = etags
+ CTAGS = ctags
+ DIST_SUBDIRS = $(SUBDIRS)
+-am__DIST_COMMON = $(srcdir)/Makefile.in
+ DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
+ am__relativize = \
+   dir0=`pwd`; \
+@@ -330,6 +319,7 @@
+ VERSION = @VERSION@
+ XGETTEXT = @XGETTEXT@
+ XGETTEXT_ARGS = @XGETTEXT_ARGS@
++XI_LIBS = @XI_LIBS@
+ XMKMF = @XMKMF@
+ XSYNC_LIBS = @XSYNC_LIBS@
+ X_CFLAGS = @X_CFLAGS@
+@@ -410,6 +400,7 @@
+ 	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu icons/Makefile'; \
+ 	$(am__cd) $(top_srcdir) && \
+ 	  $(AUTOMAKE) --gnu icons/Makefile
++.PRECIOUS: Makefile
+ Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
+ 	@case '$?' in \
+ 	  *config.status*) \
+@@ -704,8 +695,6 @@
+ 	mostlyclean mostlyclean-generic mostlyclean-libtool pdf pdf-am \
+ 	ps ps-am tags tags-am uninstall uninstall-am
+ 
+-.PRECIOUS: Makefile
+-
+ 
+ # install-data-local:
+ # 	@echo "Updating Gtk icon cache."
+--- a/icons/scalable/Makefile.in
++++ b/icons/scalable/Makefile.in
+@@ -1,7 +1,7 @@
+-# Makefile.in generated by automake 1.15 from Makefile.am.
++# Makefile.in generated by automake 1.14.1 from Makefile.am.
+ # @configure_input@
+ 
+-# Copyright (C) 1994-2014 Free Software Foundation, Inc.
++# Copyright (C) 1994-2013 Free Software Foundation, Inc.
+ 
+ # This Makefile.in is free software; the Free Software Foundation
+ # gives unlimited permission to copy and/or distribute it,
+@@ -15,17 +15,7 @@
+ @SET_MAKE@
+ 
+ VPATH = @srcdir@
+-am__is_gnu_make = { \
+-  if test -z '$(MAKELEVEL)'; then \
+-    false; \
+-  elif test -n '$(MAKE_HOST)'; then \
+-    true; \
+-  elif test -n '$(MAKE_VERSION)' && test -n '$(CURDIR)'; then \
+-    true; \
+-  else \
+-    false; \
+-  fi; \
+-}
++am__is_gnu_make = test -n '$(MAKEFILE_LIST)' && test -n '$(MAKELEVEL)'
+ am__make_running_with_option = \
+   case $${target_option-} in \
+       ?) ;; \
+@@ -89,11 +79,11 @@
+ build_triplet = @build@
+ host_triplet = @host@
+ subdir = icons/scalable
++DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am
+ ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
+ am__aclocal_m4_deps = $(top_srcdir)/configure.ac
+ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
+ 	$(ACLOCAL_M4)
+-DIST_COMMON = $(srcdir)/Makefile.am $(am__DIST_COMMON)
+ mkinstalldirs = $(install_sh) -d
+ CONFIG_HEADER = $(top_builddir)/config.h
+ CONFIG_CLEAN_FILES =
+@@ -148,7 +138,6 @@
+ 	"$(DESTDIR)$(appiconsdir)"
+ DATA = $(actionsicons_DATA) $(appicons_DATA)
+ am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP)
+-am__DIST_COMMON = $(srcdir)/Makefile.in
+ DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
+ ACLOCAL = @ACLOCAL@
+ ALL_LINGUAS = @ALL_LINGUAS@
+@@ -301,6 +290,7 @@
+ VERSION = @VERSION@
+ XGETTEXT = @XGETTEXT@
+ XGETTEXT_ARGS = @XGETTEXT_ARGS@
++XI_LIBS = @XI_LIBS@
+ XMKMF = @XMKMF@
+ XSYNC_LIBS = @XSYNC_LIBS@
+ X_CFLAGS = @X_CFLAGS@
+@@ -395,6 +385,7 @@
+ 	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu icons/scalable/Makefile'; \
+ 	$(am__cd) $(top_srcdir) && \
+ 	  $(AUTOMAKE) --gnu icons/scalable/Makefile
++.PRECIOUS: Makefile
+ Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
+ 	@case '$?' in \
+ 	  *config.status*) \
+@@ -616,8 +607,6 @@
+ 	tags-am uninstall uninstall-actionsiconsDATA uninstall-am \
+ 	uninstall-appiconsDATA
+ 
+-.PRECIOUS: Makefile
+-
+ 
+ # Tell versions [3.59,3.63) of GNU make to not export all variables.
+ # Otherwise a system limit (for SysV at least) may be exceeded.
+--- a/settings-dialogs/Makefile.in
++++ b/settings-dialogs/Makefile.in
+@@ -1,7 +1,7 @@
+-# Makefile.in generated by automake 1.15 from Makefile.am.
++# Makefile.in generated by automake 1.14.1 from Makefile.am.
+ # @configure_input@
+ 
+-# Copyright (C) 1994-2014 Free Software Foundation, Inc.
++# Copyright (C) 1994-2013 Free Software Foundation, Inc.
+ 
+ # This Makefile.in is free software; the Free Software Foundation
+ # gives unlimited permission to copy and/or distribute it,
+@@ -16,17 +16,7 @@
+ 
+ 
+ VPATH = @srcdir@
+-am__is_gnu_make = { \
+-  if test -z '$(MAKELEVEL)'; then \
+-    false; \
+-  elif test -n '$(MAKE_HOST)'; then \
+-    true; \
+-  elif test -n '$(MAKE_VERSION)' && test -n '$(CURDIR)'; then \
+-    true; \
+-  else \
+-    false; \
+-  fi; \
+-}
++am__is_gnu_make = test -n '$(MAKEFILE_LIST)' && test -n '$(MAKELEVEL)'
+ am__make_running_with_option = \
+   case $${target_option-} in \
+       ?) ;; \
+@@ -92,11 +82,12 @@
+ bin_PROGRAMS = xfwm4-settings$(EXEEXT) xfwm4-tweaks-settings$(EXEEXT) \
+ 	xfwm4-workspace-settings$(EXEEXT)
+ subdir = settings-dialogs
++DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am \
++	$(top_srcdir)/depcomp
+ ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
+ am__aclocal_m4_deps = $(top_srcdir)/configure.ac
+ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
+ 	$(ACLOCAL_M4)
+-DIST_COMMON = $(srcdir)/Makefile.am $(am__DIST_COMMON)
+ mkinstalldirs = $(install_sh) -d
+ CONFIG_HEADER = $(top_builddir)/config.h
+ CONFIG_CLEAN_FILES =
+@@ -230,7 +221,6 @@
+   done | $(am__uniquify_input)`
+ ETAGS = etags
+ CTAGS = ctags
+-am__DIST_COMMON = $(srcdir)/Makefile.in $(top_srcdir)/depcomp
+ DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
+ ACLOCAL = @ACLOCAL@
+ ALL_LINGUAS = @ALL_LINGUAS@
+@@ -383,6 +373,7 @@
+ VERSION = @VERSION@
+ XGETTEXT = @XGETTEXT@
+ XGETTEXT_ARGS = @XGETTEXT_ARGS@
++XI_LIBS = @XI_LIBS@
+ XMKMF = @XMKMF@
+ XSYNC_LIBS = @XSYNC_LIBS@
+ X_CFLAGS = @X_CFLAGS@
+@@ -558,6 +549,7 @@
+ 	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu settings-dialogs/Makefile'; \
+ 	$(am__cd) $(top_srcdir) && \
+ 	  $(AUTOMAKE) --gnu settings-dialogs/Makefile
++.PRECIOUS: Makefile
+ Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
+ 	@case '$?' in \
+ 	  *config.status*) \
+@@ -947,8 +939,6 @@
+ 	pdf pdf-am ps ps-am tags tags-am uninstall uninstall-am \
+ 	uninstall-binPROGRAMS uninstall-desktopDATA
+ 
+-.PRECIOUS: Makefile
+-
+ 
+ @MAINTAINER_MODE_TRUE@xfwm4-workspace-dialog_ui.h: xfwm4-workspace-dialog.glade
+ @MAINTAINER_MODE_TRUE@	$(AM_V_GEN) exo-csource --static --strip-comments --strip-content --name=workspace_dialog_ui $< >$@
+--- a/src/Makefile.in
++++ b/src/Makefile.in
+@@ -1,7 +1,7 @@
+-# Makefile.in generated by automake 1.15 from Makefile.am.
++# Makefile.in generated by automake 1.14.1 from Makefile.am.
+ # @configure_input@
+ 
+-# Copyright (C) 1994-2014 Free Software Foundation, Inc.
++# Copyright (C) 1994-2013 Free Software Foundation, Inc.
+ 
+ # This Makefile.in is free software; the Free Software Foundation
+ # gives unlimited permission to copy and/or distribute it,
+@@ -15,17 +15,7 @@
+ @SET_MAKE@
+ 
+ VPATH = @srcdir@
+-am__is_gnu_make = { \
+-  if test -z '$(MAKELEVEL)'; then \
+-    false; \
+-  elif test -n '$(MAKE_HOST)'; then \
+-    true; \
+-  elif test -n '$(MAKE_VERSION)' && test -n '$(CURDIR)'; then \
+-    true; \
+-  else \
+-    false; \
+-  fi; \
+-}
++am__is_gnu_make = test -n '$(MAKEFILE_LIST)' && test -n '$(MAKELEVEL)'
+ am__make_running_with_option = \
+   case $${target_option-} in \
+       ?) ;; \
+@@ -90,11 +80,12 @@
+ host_triplet = @host@
+ bin_PROGRAMS = xfwm4$(EXEEXT)
+ subdir = src
++DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am \
++	$(top_srcdir)/depcomp
+ ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
+ am__aclocal_m4_deps = $(top_srcdir)/configure.ac
+ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
+ 	$(ACLOCAL_M4)
+-DIST_COMMON = $(srcdir)/Makefile.am $(am__DIST_COMMON)
+ mkinstalldirs = $(install_sh) -d
+ CONFIG_HEADER = $(top_builddir)/config.h
+ CONFIG_CLEAN_FILES =
+@@ -125,7 +116,8 @@
+ 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
+ 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
+ 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
+-	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
++	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
++	$(am__DEPENDENCIES_1)
+ AM_V_lt = $(am__v_lt_@AM_V@)
+ am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
+ am__v_lt_0 = --silent
+@@ -193,7 +185,6 @@
+   done | $(am__uniquify_input)`
+ ETAGS = etags
+ CTAGS = ctags
+-am__DIST_COMMON = $(srcdir)/Makefile.in $(top_srcdir)/depcomp
+ DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
+ ACLOCAL = @ACLOCAL@
+ ALL_LINGUAS = @ALL_LINGUAS@
+@@ -346,6 +337,7 @@
+ VERSION = @VERSION@
+ XGETTEXT = @XGETTEXT@
+ XGETTEXT_ARGS = @XGETTEXT_ARGS@
++XI_LIBS = @XI_LIBS@
+ XMKMF = @XMKMF@
+ XSYNC_LIBS = @XSYNC_LIBS@
+ X_CFLAGS = @X_CFLAGS@
+@@ -508,6 +500,7 @@
+ 	$(RENDER_LIBS)							\
+ 	$(COMPOSITOR_LIBS)						\
+ 	$(RANDR_LIBS) 							\
++	$(XI_LIBS) 							\
+ 	$(MATH_LIBS)
+ 
+ EXTRA_DIST = \
+@@ -535,6 +528,7 @@
+ 	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu src/Makefile'; \
+ 	$(am__cd) $(top_srcdir) && \
+ 	  $(AUTOMAKE) --gnu src/Makefile
++.PRECIOUS: Makefile
+ Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
+ 	@case '$?' in \
+ 	  *config.status*) \
+@@ -1358,8 +1352,6 @@
+ 	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
+ 	tags tags-am uninstall uninstall-am uninstall-binPROGRAMS
+ 
+-.PRECIOUS: Makefile
+-
+ 
+ @MAINTAINER_MODE_TRUE@inline-default-icon.h: $(srcdir)/default_icon.png
+ @MAINTAINER_MODE_TRUE@	$(AM_V_GEN) gdk-pixbuf-csource --raw --build-list 		\
+--- a/themes/Makefile.in
++++ b/themes/Makefile.in
+@@ -1,7 +1,7 @@
+-# Makefile.in generated by automake 1.15 from Makefile.am.
++# Makefile.in generated by automake 1.14.1 from Makefile.am.
+ # @configure_input@
+ 
+-# Copyright (C) 1994-2014 Free Software Foundation, Inc.
++# Copyright (C) 1994-2013 Free Software Foundation, Inc.
+ 
+ # This Makefile.in is free software; the Free Software Foundation
+ # gives unlimited permission to copy and/or distribute it,
+@@ -17,17 +17,7 @@
+ # themes/Makefile.am
+ #
+ VPATH = @srcdir@
+-am__is_gnu_make = { \
+-  if test -z '$(MAKELEVEL)'; then \
+-    false; \
+-  elif test -n '$(MAKE_HOST)'; then \
+-    true; \
+-  elif test -n '$(MAKE_VERSION)' && test -n '$(CURDIR)'; then \
+-    true; \
+-  else \
+-    false; \
+-  fi; \
+-}
++am__is_gnu_make = test -n '$(MAKEFILE_LIST)' && test -n '$(MAKELEVEL)'
+ am__make_running_with_option = \
+   case $${target_option-} in \
+       ?) ;; \
+@@ -91,11 +81,11 @@
+ build_triplet = @build@
+ host_triplet = @host@
+ subdir = themes
++DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am
+ ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
+ am__aclocal_m4_deps = $(top_srcdir)/configure.ac
+ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
+ 	$(ACLOCAL_M4)
+-DIST_COMMON = $(srcdir)/Makefile.am $(am__DIST_COMMON)
+ mkinstalldirs = $(install_sh) -d
+ CONFIG_HEADER = $(top_builddir)/config.h
+ CONFIG_CLEAN_FILES =
+@@ -155,7 +145,6 @@
+ ETAGS = etags
+ CTAGS = ctags
+ DIST_SUBDIRS = $(SUBDIRS)
+-am__DIST_COMMON = $(srcdir)/Makefile.in
+ DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
+ am__relativize = \
+   dir0=`pwd`; \
+@@ -333,6 +322,7 @@
+ VERSION = @VERSION@
+ XGETTEXT = @XGETTEXT@
+ XGETTEXT_ARGS = @XGETTEXT_ARGS@
++XI_LIBS = @XI_LIBS@
+ XMKMF = @XMKMF@
+ XSYNC_LIBS = @XSYNC_LIBS@
+ X_CFLAGS = @X_CFLAGS@
+@@ -416,6 +406,7 @@
+ 	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu themes/Makefile'; \
+ 	$(am__cd) $(top_srcdir) && \
+ 	  $(AUTOMAKE) --gnu themes/Makefile
++.PRECIOUS: Makefile
+ Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
+ 	@case '$?' in \
+ 	  *config.status*) \
+@@ -710,8 +701,6 @@
+ 	mostlyclean mostlyclean-generic mostlyclean-libtool pdf pdf-am \
+ 	ps ps-am tags tags-am uninstall uninstall-am
+ 
+-.PRECIOUS: Makefile
+-
+ 
+ # Tell versions [3.59,3.63) of GNU make to not export all variables.
+ # Otherwise a system limit (for SysV at least) may be exceeded.
+--- a/themes/daloa/Makefile.in
++++ b/themes/daloa/Makefile.in
+@@ -1,7 +1,7 @@
+-# Makefile.in generated by automake 1.15 from Makefile.am.
++# Makefile.in generated by automake 1.14.1 from Makefile.am.
+ # @configure_input@
+ 
+-# Copyright (C) 1994-2014 Free Software Foundation, Inc.
++# Copyright (C) 1994-2013 Free Software Foundation, Inc.
+ 
+ # This Makefile.in is free software; the Free Software Foundation
+ # gives unlimited permission to copy and/or distribute it,
+@@ -15,17 +15,7 @@
+ @SET_MAKE@
+ 
+ VPATH = @srcdir@
+-am__is_gnu_make = { \
+-  if test -z '$(MAKELEVEL)'; then \
+-    false; \
+-  elif test -n '$(MAKE_HOST)'; then \
+-    true; \
+-  elif test -n '$(MAKE_VERSION)' && test -n '$(CURDIR)'; then \
+-    true; \
+-  else \
+-    false; \
+-  fi; \
+-}
++am__is_gnu_make = test -n '$(MAKEFILE_LIST)' && test -n '$(MAKELEVEL)'
+ am__make_running_with_option = \
+   case $${target_option-} in \
+       ?) ;; \
+@@ -89,11 +79,11 @@
+ build_triplet = @build@
+ host_triplet = @host@
+ subdir = themes/daloa
++DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am README
+ ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
+ am__aclocal_m4_deps = $(top_srcdir)/configure.ac
+ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
+ 	$(ACLOCAL_M4)
+-DIST_COMMON = $(srcdir)/Makefile.am $(am__DIST_COMMON)
+ mkinstalldirs = $(install_sh) -d
+ CONFIG_HEADER = $(top_builddir)/config.h
+ CONFIG_CLEAN_FILES =
+@@ -147,7 +137,6 @@
+ am__installdirs = "$(DESTDIR)$(themedir)"
+ DATA = $(noinst_DATA) $(theme_DATA)
+ am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP)
+-am__DIST_COMMON = $(srcdir)/Makefile.in README
+ DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
+ ACLOCAL = @ACLOCAL@
+ ALL_LINGUAS = @ALL_LINGUAS@
+@@ -300,6 +289,7 @@
+ VERSION = @VERSION@
+ XGETTEXT = @XGETTEXT@
+ XGETTEXT_ARGS = @XGETTEXT_ARGS@
++XI_LIBS = @XI_LIBS@
+ XMKMF = @XMKMF@
+ XSYNC_LIBS = @XSYNC_LIBS@
+ X_CFLAGS = @X_CFLAGS@
+@@ -575,6 +565,7 @@
+ 	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu themes/daloa/Makefile'; \
+ 	$(am__cd) $(top_srcdir) && \
+ 	  $(AUTOMAKE) --gnu themes/daloa/Makefile
++.PRECIOUS: Makefile
+ Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
+ 	@case '$?' in \
+ 	  *config.status*) \
+@@ -773,8 +764,6 @@
+ 	mostlyclean mostlyclean-generic mostlyclean-libtool pdf pdf-am \
+ 	ps ps-am tags-am uninstall uninstall-am uninstall-themeDATA
+ 
+-.PRECIOUS: Makefile
+-
+ 
+ vacuum-defs:
+ 	for svg_file in $(SVG_FILES); do \
+--- a/themes/default-hdpi/Makefile.in
++++ b/themes/default-hdpi/Makefile.in
+@@ -1,7 +1,7 @@
+-# Makefile.in generated by automake 1.15 from Makefile.am.
++# Makefile.in generated by automake 1.14.1 from Makefile.am.
+ # @configure_input@
+ 
+-# Copyright (C) 1994-2014 Free Software Foundation, Inc.
++# Copyright (C) 1994-2013 Free Software Foundation, Inc.
+ 
+ # This Makefile.in is free software; the Free Software Foundation
+ # gives unlimited permission to copy and/or distribute it,
+@@ -15,17 +15,7 @@
+ @SET_MAKE@
+ 
+ VPATH = @srcdir@
+-am__is_gnu_make = { \
+-  if test -z '$(MAKELEVEL)'; then \
+-    false; \
+-  elif test -n '$(MAKE_HOST)'; then \
+-    true; \
+-  elif test -n '$(MAKE_VERSION)' && test -n '$(CURDIR)'; then \
+-    true; \
+-  else \
+-    false; \
+-  fi; \
+-}
++am__is_gnu_make = test -n '$(MAKEFILE_LIST)' && test -n '$(MAKELEVEL)'
+ am__make_running_with_option = \
+   case $${target_option-} in \
+       ?) ;; \
+@@ -89,11 +79,11 @@
+ build_triplet = @build@
+ host_triplet = @host@
+ subdir = themes/default-hdpi
++DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am README
+ ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
+ am__aclocal_m4_deps = $(top_srcdir)/configure.ac
+ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
+ 	$(ACLOCAL_M4)
+-DIST_COMMON = $(srcdir)/Makefile.am $(am__DIST_COMMON)
+ mkinstalldirs = $(install_sh) -d
+ CONFIG_HEADER = $(top_builddir)/config.h
+ CONFIG_CLEAN_FILES =
+@@ -147,7 +137,6 @@
+ am__installdirs = "$(DESTDIR)$(themedir)"
+ DATA = $(noinst_DATA) $(theme_DATA)
+ am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP)
+-am__DIST_COMMON = $(srcdir)/Makefile.in README
+ DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
+ ACLOCAL = @ACLOCAL@
+ ALL_LINGUAS = @ALL_LINGUAS@
+@@ -300,6 +289,7 @@
+ VERSION = @VERSION@
+ XGETTEXT = @XGETTEXT@
+ XGETTEXT_ARGS = @XGETTEXT_ARGS@
++XI_LIBS = @XI_LIBS@
+ XMKMF = @XMKMF@
+ XSYNC_LIBS = @XSYNC_LIBS@
+ X_CFLAGS = @X_CFLAGS@
+@@ -575,6 +565,7 @@
+ 	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu themes/default-hdpi/Makefile'; \
+ 	$(am__cd) $(top_srcdir) && \
+ 	  $(AUTOMAKE) --gnu themes/default-hdpi/Makefile
++.PRECIOUS: Makefile
+ Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
+ 	@case '$?' in \
+ 	  *config.status*) \
+@@ -773,8 +764,6 @@
+ 	mostlyclean mostlyclean-generic mostlyclean-libtool pdf pdf-am \
+ 	ps ps-am tags-am uninstall uninstall-am uninstall-themeDATA
+ 
+-.PRECIOUS: Makefile
+-
+ 
+ vacuum-defs:
+ 	for svg_file in $(SVG_FILES); do \
+--- a/themes/default-xhdpi/Makefile.in
++++ b/themes/default-xhdpi/Makefile.in
+@@ -1,7 +1,7 @@
+-# Makefile.in generated by automake 1.15 from Makefile.am.
++# Makefile.in generated by automake 1.14.1 from Makefile.am.
+ # @configure_input@
+ 
+-# Copyright (C) 1994-2014 Free Software Foundation, Inc.
++# Copyright (C) 1994-2013 Free Software Foundation, Inc.
+ 
+ # This Makefile.in is free software; the Free Software Foundation
+ # gives unlimited permission to copy and/or distribute it,
+@@ -15,17 +15,7 @@
+ @SET_MAKE@
+ 
+ VPATH = @srcdir@
+-am__is_gnu_make = { \
+-  if test -z '$(MAKELEVEL)'; then \
+-    false; \
+-  elif test -n '$(MAKE_HOST)'; then \
+-    true; \
+-  elif test -n '$(MAKE_VERSION)' && test -n '$(CURDIR)'; then \
+-    true; \
+-  else \
+-    false; \
+-  fi; \
+-}
++am__is_gnu_make = test -n '$(MAKEFILE_LIST)' && test -n '$(MAKELEVEL)'
+ am__make_running_with_option = \
+   case $${target_option-} in \
+       ?) ;; \
+@@ -89,11 +79,11 @@
+ build_triplet = @build@
+ host_triplet = @host@
+ subdir = themes/default-xhdpi
++DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am README
+ ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
+ am__aclocal_m4_deps = $(top_srcdir)/configure.ac
+ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
+ 	$(ACLOCAL_M4)
+-DIST_COMMON = $(srcdir)/Makefile.am $(am__DIST_COMMON)
+ mkinstalldirs = $(install_sh) -d
+ CONFIG_HEADER = $(top_builddir)/config.h
+ CONFIG_CLEAN_FILES =
+@@ -147,7 +137,6 @@
+ am__installdirs = "$(DESTDIR)$(themedir)"
+ DATA = $(noinst_DATA) $(theme_DATA)
+ am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP)
+-am__DIST_COMMON = $(srcdir)/Makefile.in README
+ DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
+ ACLOCAL = @ACLOCAL@
+ ALL_LINGUAS = @ALL_LINGUAS@
+@@ -300,6 +289,7 @@
+ VERSION = @VERSION@
+ XGETTEXT = @XGETTEXT@
+ XGETTEXT_ARGS = @XGETTEXT_ARGS@
++XI_LIBS = @XI_LIBS@
+ XMKMF = @XMKMF@
+ XSYNC_LIBS = @XSYNC_LIBS@
+ X_CFLAGS = @X_CFLAGS@
+@@ -575,6 +565,7 @@
+ 	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu themes/default-xhdpi/Makefile'; \
+ 	$(am__cd) $(top_srcdir) && \
+ 	  $(AUTOMAKE) --gnu themes/default-xhdpi/Makefile
++.PRECIOUS: Makefile
+ Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
+ 	@case '$?' in \
+ 	  *config.status*) \
+@@ -773,8 +764,6 @@
+ 	mostlyclean mostlyclean-generic mostlyclean-libtool pdf pdf-am \
+ 	ps ps-am tags-am uninstall uninstall-am uninstall-themeDATA
+ 
+-.PRECIOUS: Makefile
+-
+ 
+ vacuum-defs:
+ 	for svg_file in $(SVG_FILES); do \
+--- a/themes/default/Makefile.in
++++ b/themes/default/Makefile.in
+@@ -1,7 +1,7 @@
+-# Makefile.in generated by automake 1.15 from Makefile.am.
++# Makefile.in generated by automake 1.14.1 from Makefile.am.
+ # @configure_input@
+ 
+-# Copyright (C) 1994-2014 Free Software Foundation, Inc.
++# Copyright (C) 1994-2013 Free Software Foundation, Inc.
+ 
+ # This Makefile.in is free software; the Free Software Foundation
+ # gives unlimited permission to copy and/or distribute it,
+@@ -15,17 +15,7 @@
+ @SET_MAKE@
+ 
+ VPATH = @srcdir@
+-am__is_gnu_make = { \
+-  if test -z '$(MAKELEVEL)'; then \
+-    false; \
+-  elif test -n '$(MAKE_HOST)'; then \
+-    true; \
+-  elif test -n '$(MAKE_VERSION)' && test -n '$(CURDIR)'; then \
+-    true; \
+-  else \
+-    false; \
+-  fi; \
+-}
++am__is_gnu_make = test -n '$(MAKEFILE_LIST)' && test -n '$(MAKELEVEL)'
+ am__make_running_with_option = \
+   case $${target_option-} in \
+       ?) ;; \
+@@ -89,11 +79,11 @@
+ build_triplet = @build@
+ host_triplet = @host@
+ subdir = themes/default
++DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am README
+ ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
+ am__aclocal_m4_deps = $(top_srcdir)/configure.ac
+ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
+ 	$(ACLOCAL_M4)
+-DIST_COMMON = $(srcdir)/Makefile.am $(am__DIST_COMMON)
+ mkinstalldirs = $(install_sh) -d
+ CONFIG_HEADER = $(top_builddir)/config.h
+ CONFIG_CLEAN_FILES =
+@@ -147,7 +137,6 @@
+ am__installdirs = "$(DESTDIR)$(themedir)"
+ DATA = $(noinst_DATA) $(theme_DATA)
+ am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP)
+-am__DIST_COMMON = $(srcdir)/Makefile.in README
+ DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
+ ACLOCAL = @ACLOCAL@
+ ALL_LINGUAS = @ALL_LINGUAS@
+@@ -300,6 +289,7 @@
+ VERSION = @VERSION@
+ XGETTEXT = @XGETTEXT@
+ XGETTEXT_ARGS = @XGETTEXT_ARGS@
++XI_LIBS = @XI_LIBS@
+ XMKMF = @XMKMF@
+ XSYNC_LIBS = @XSYNC_LIBS@
+ X_CFLAGS = @X_CFLAGS@
+@@ -575,6 +565,7 @@
+ 	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu themes/default/Makefile'; \
+ 	$(am__cd) $(top_srcdir) && \
+ 	  $(AUTOMAKE) --gnu themes/default/Makefile
++.PRECIOUS: Makefile
+ Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
+ 	@case '$?' in \
+ 	  *config.status*) \
+@@ -773,8 +764,6 @@
+ 	mostlyclean mostlyclean-generic mostlyclean-libtool pdf pdf-am \
+ 	ps ps-am tags-am uninstall uninstall-am uninstall-themeDATA
+ 
+-.PRECIOUS: Makefile
+-
+ 
+ vacuum-defs:
+ 	for svg_file in $(SVG_FILES); do \
+--- a/themes/kokodi/Makefile.in
++++ b/themes/kokodi/Makefile.in
+@@ -1,7 +1,7 @@
+-# Makefile.in generated by automake 1.15 from Makefile.am.
++# Makefile.in generated by automake 1.14.1 from Makefile.am.
+ # @configure_input@
+ 
+-# Copyright (C) 1994-2014 Free Software Foundation, Inc.
++# Copyright (C) 1994-2013 Free Software Foundation, Inc.
+ 
+ # This Makefile.in is free software; the Free Software Foundation
+ # gives unlimited permission to copy and/or distribute it,
+@@ -15,17 +15,7 @@
+ @SET_MAKE@
+ 
+ VPATH = @srcdir@
+-am__is_gnu_make = { \
+-  if test -z '$(MAKELEVEL)'; then \
+-    false; \
+-  elif test -n '$(MAKE_HOST)'; then \
+-    true; \
+-  elif test -n '$(MAKE_VERSION)' && test -n '$(CURDIR)'; then \
+-    true; \
+-  else \
+-    false; \
+-  fi; \
+-}
++am__is_gnu_make = test -n '$(MAKEFILE_LIST)' && test -n '$(MAKELEVEL)'
+ am__make_running_with_option = \
+   case $${target_option-} in \
+       ?) ;; \
+@@ -89,11 +79,11 @@
+ build_triplet = @build@
+ host_triplet = @host@
+ subdir = themes/kokodi
++DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am README
+ ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
+ am__aclocal_m4_deps = $(top_srcdir)/configure.ac
+ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
+ 	$(ACLOCAL_M4)
+-DIST_COMMON = $(srcdir)/Makefile.am $(am__DIST_COMMON)
+ mkinstalldirs = $(install_sh) -d
+ CONFIG_HEADER = $(top_builddir)/config.h
+ CONFIG_CLEAN_FILES =
+@@ -147,7 +137,6 @@
+ am__installdirs = "$(DESTDIR)$(themedir)"
+ DATA = $(noinst_DATA) $(theme_DATA)
+ am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP)
+-am__DIST_COMMON = $(srcdir)/Makefile.in README
+ DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
+ ACLOCAL = @ACLOCAL@
+ ALL_LINGUAS = @ALL_LINGUAS@
+@@ -300,6 +289,7 @@
+ VERSION = @VERSION@
+ XGETTEXT = @XGETTEXT@
+ XGETTEXT_ARGS = @XGETTEXT_ARGS@
++XI_LIBS = @XI_LIBS@
+ XMKMF = @XMKMF@
+ XSYNC_LIBS = @XSYNC_LIBS@
+ X_CFLAGS = @X_CFLAGS@
+@@ -575,6 +565,7 @@
+ 	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu themes/kokodi/Makefile'; \
+ 	$(am__cd) $(top_srcdir) && \
+ 	  $(AUTOMAKE) --gnu themes/kokodi/Makefile
++.PRECIOUS: Makefile
+ Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
+ 	@case '$?' in \
+ 	  *config.status*) \
+@@ -773,8 +764,6 @@
+ 	mostlyclean mostlyclean-generic mostlyclean-libtool pdf pdf-am \
+ 	ps ps-am tags-am uninstall uninstall-am uninstall-themeDATA
+ 
+-.PRECIOUS: Makefile
+-
+ 
+ vacuum-defs:
+ 	for svg_file in $(SVG_FILES); do \
+--- a/themes/moheli/Makefile.in
++++ b/themes/moheli/Makefile.in
+@@ -1,7 +1,7 @@
+-# Makefile.in generated by automake 1.15 from Makefile.am.
++# Makefile.in generated by automake 1.14.1 from Makefile.am.
+ # @configure_input@
+ 
+-# Copyright (C) 1994-2014 Free Software Foundation, Inc.
++# Copyright (C) 1994-2013 Free Software Foundation, Inc.
+ 
+ # This Makefile.in is free software; the Free Software Foundation
+ # gives unlimited permission to copy and/or distribute it,
+@@ -15,17 +15,7 @@
+ @SET_MAKE@
+ 
+ VPATH = @srcdir@
+-am__is_gnu_make = { \
+-  if test -z '$(MAKELEVEL)'; then \
+-    false; \
+-  elif test -n '$(MAKE_HOST)'; then \
+-    true; \
+-  elif test -n '$(MAKE_VERSION)' && test -n '$(CURDIR)'; then \
+-    true; \
+-  else \
+-    false; \
+-  fi; \
+-}
++am__is_gnu_make = test -n '$(MAKEFILE_LIST)' && test -n '$(MAKELEVEL)'
+ am__make_running_with_option = \
+   case $${target_option-} in \
+       ?) ;; \
+@@ -89,11 +79,11 @@
+ build_triplet = @build@
+ host_triplet = @host@
+ subdir = themes/moheli
++DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am README
+ ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
+ am__aclocal_m4_deps = $(top_srcdir)/configure.ac
+ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
+ 	$(ACLOCAL_M4)
+-DIST_COMMON = $(srcdir)/Makefile.am $(am__DIST_COMMON)
+ mkinstalldirs = $(install_sh) -d
+ CONFIG_HEADER = $(top_builddir)/config.h
+ CONFIG_CLEAN_FILES =
+@@ -147,7 +137,6 @@
+ am__installdirs = "$(DESTDIR)$(themedir)"
+ DATA = $(theme_DATA)
+ am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP)
+-am__DIST_COMMON = $(srcdir)/Makefile.in README
+ DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
+ ACLOCAL = @ACLOCAL@
+ ALL_LINGUAS = @ALL_LINGUAS@
+@@ -300,6 +289,7 @@
+ VERSION = @VERSION@
+ XGETTEXT = @XGETTEXT@
+ XGETTEXT_ARGS = @XGETTEXT_ARGS@
++XI_LIBS = @XI_LIBS@
+ XMKMF = @XMKMF@
+ XSYNC_LIBS = @XSYNC_LIBS@
+ X_CFLAGS = @X_CFLAGS@
+@@ -483,6 +473,7 @@
+ 	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu themes/moheli/Makefile'; \
+ 	$(am__cd) $(top_srcdir) && \
+ 	  $(AUTOMAKE) --gnu themes/moheli/Makefile
++.PRECIOUS: Makefile
+ Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
+ 	@case '$?' in \
+ 	  *config.status*) \
+@@ -681,8 +672,6 @@
+ 	mostlyclean mostlyclean-generic mostlyclean-libtool pdf pdf-am \
+ 	ps ps-am tags-am uninstall uninstall-am uninstall-themeDATA
+ 
+-.PRECIOUS: Makefile
+-
+ 
+ # Tell versions [3.59,3.63) of GNU make to not export all variables.
+ # Otherwise a system limit (for SysV at least) may be exceeded.
+--- a/src/Makefile.am
++++ b/src/Makefile.am
+@@ -102,6 +102,7 @@
+ 	$(RENDER_LIBS)							\
+ 	$(COMPOSITOR_LIBS)						\
+ 	$(RANDR_LIBS) 							\
++	$(XI_LIBS) 							\
+ 	$(MATH_LIBS)
+ 
+ EXTRA_DIST = 								\
+--- a/compile
++++ b/compile
+@@ -3,7 +3,7 @@
+ 
+ scriptversion=2012-10-14.11; # UTC
+ 
+-# Copyright (C) 1999-2014 Free Software Foundation, Inc.
++# Copyright (C) 1999-2013 Free Software Foundation, Inc.
+ # Written by Tom Tromey <tromey@cygnus.com>.
+ #
+ # This program is free software; you can redistribute it and/or modify
+--- a/config.guess
++++ b/config.guess
+@@ -1,8 +1,8 @@
+ #! /bin/sh
+ # Attempt to guess a canonical system name.
+-#   Copyright 1992-2015 Free Software Foundation, Inc.
++#   Copyright 1992-2014 Free Software Foundation, Inc.
+ 
+-timestamp='2015-01-01'
++timestamp='2014-03-23'
+ 
+ # This file is free software; you can redistribute it and/or modify it
+ # under the terms of the GNU General Public License as published by
+@@ -24,12 +24,12 @@
+ # program.  This Exception is an additional permission under section 7
+ # of the GNU General Public License, version 3 ("GPLv3").
+ #
+-# Originally written by Per Bothner; maintained since 2000 by Ben Elliston.
++# Originally written by Per Bothner.
+ #
+ # You can get the latest version of this script from:
+ # http://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.guess;hb=HEAD
+ #
+-# Please send patches to <config-patches@gnu.org>.
++# Please send patches with a ChangeLog entry to config-patches@gnu.org.
+ 
+ 
+ me=`echo "$0" | sed -e 's,.*/,,'`
+@@ -50,7 +50,7 @@
+ GNU config.guess ($timestamp)
+ 
+ Originally written by Per Bothner.
+-Copyright 1992-2015 Free Software Foundation, Inc.
++Copyright 1992-2014 Free Software Foundation, Inc.
+ 
+ This is free software; see the source for copying conditions.  There is NO
+ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+@@ -579,9 +579,8 @@
+ 	else
+ 		IBM_ARCH=powerpc
+ 	fi
+-	if [ -x /usr/bin/lslpp ] ; then
+-		IBM_REV=`/usr/bin/lslpp -Lqc bos.rte.libc |
+-			   awk -F: '{ print $3 }' | sed s/[0-9]*$/0/`
++	if [ -x /usr/bin/oslevel ] ; then
++		IBM_REV=`/usr/bin/oslevel`
+ 	else
+ 		IBM_REV=${UNAME_VERSION}.${UNAME_RELEASE}
+ 	fi
+--- a/config.sub
++++ b/config.sub
+@@ -1,8 +1,8 @@
+ #! /bin/sh
+ # Configuration validation subroutine script.
+-#   Copyright 1992-2015 Free Software Foundation, Inc.
++#   Copyright 1992-2014 Free Software Foundation, Inc.
+ 
+-timestamp='2015-01-01'
++timestamp='2014-09-11'
+ 
+ # This file is free software; you can redistribute it and/or modify it
+ # under the terms of the GNU General Public License as published by
+@@ -25,7 +25,7 @@
+ # of the GNU General Public License, version 3 ("GPLv3").
+ 
+ 
+-# Please send patches to <config-patches@gnu.org>.
++# Please send patches with a ChangeLog entry to config-patches@gnu.org.
+ #
+ # Configuration subroutine to validate and canonicalize a configuration type.
+ # Supply the specified configuration type as an argument.
+@@ -68,7 +68,7 @@
+ version="\
+ GNU config.sub ($timestamp)
+ 
+-Copyright 1992-2015 Free Software Foundation, Inc.
++Copyright 1992-2014 Free Software Foundation, Inc.
+ 
+ This is free software; see the source for copying conditions.  There is NO
+ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+@@ -260,7 +260,7 @@
+ 	| c4x | c8051 | clipper \
+ 	| d10v | d30v | dlx | dsp16xx \
+ 	| epiphany \
+-	| fido | fr30 | frv | ft32 \
++	| fido | fr30 | frv \
+ 	| h8300 | h8500 | hppa | hppa1.[01] | hppa2.0 | hppa2.0[nw] | hppa64 \
+ 	| hexagon \
+ 	| i370 | i860 | i960 | ia64 \
+@@ -313,7 +313,6 @@
+ 	| tahoe | tic4x | tic54x | tic55x | tic6x | tic80 | tron \
+ 	| ubicom32 \
+ 	| v850 | v850e | v850e1 | v850e2 | v850es | v850e2v3 \
+-	| visium \
+ 	| we32k \
+ 	| x86 | xc16x | xstormy16 | xtensa \
+ 	| z8k | z80)
+@@ -328,9 +327,6 @@
+ 	c6x)
+ 		basic_machine=tic6x-unknown
+ 		;;
+-	leon|leon[3-9])
+-		basic_machine=sparc-$basic_machine
+-		;;
+ 	m6811 | m68hc11 | m6812 | m68hc12 | m68hcs12x | nvptx | picochip)
+ 		basic_machine=$basic_machine-unknown
+ 		os=-none
+@@ -441,7 +437,6 @@
+ 	| ubicom32-* \
+ 	| v850-* | v850e-* | v850e1-* | v850es-* | v850e2-* | v850e2v3-* \
+ 	| vax-* \
+-	| visium-* \
+ 	| we32k-* \
+ 	| x86-* | x86_64-* | xc16x-* | xps100-* \
+ 	| xstormy16-* | xtensa*-* \
+@@ -779,9 +774,6 @@
+ 		basic_machine=m68k-isi
+ 		os=-sysv
+ 		;;
+-	leon-*|leon[3-9]-*)
+-		basic_machine=sparc-`echo $basic_machine | sed 's/-.*//'`
+-		;;
+ 	m68knommu)
+ 		basic_machine=m68k-unknown
+ 		os=-linux
+@@ -1025,7 +1017,7 @@
+ 		;;
+ 	ppc64)	basic_machine=powerpc64-unknown
+ 		;;
+-	ppc64-* | ppc64p7-*) basic_machine=powerpc64-`echo $basic_machine | sed 's/^[^-]*-//'`
++	ppc64-*) basic_machine=powerpc64-`echo $basic_machine | sed 's/^[^-]*-//'`
+ 		;;
+ 	ppc64le | powerpc64little | ppc64-le | powerpc64-little)
+ 		basic_machine=powerpc64le-unknown
+--- a/depcomp
++++ b/depcomp
+@@ -3,7 +3,7 @@
+ 
+ scriptversion=2013-05-30.07; # UTC
+ 
+-# Copyright (C) 1999-2014 Free Software Foundation, Inc.
++# Copyright (C) 1999-2013 Free Software Foundation, Inc.
+ 
+ # This program is free software; you can redistribute it and/or modify
+ # it under the terms of the GNU General Public License as published by
+--- a/install-sh
++++ b/install-sh
+@@ -1,7 +1,7 @@
+ #!/bin/sh
+ # install - install a program, script, or datafile
+ 
+-scriptversion=2013-12-25.23; # UTC
++scriptversion=2011-11-20.07; # UTC
+ 
+ # This originates from X11R5 (mit/util/scripts/install.sh), which was
+ # later released in X11R6 (xc/config/util/install.sh) with the
+@@ -41,15 +41,19 @@
+ # This script is compatible with the BSD install script, but was written
+ # from scratch.
+ 
+-tab='	'
+ nl='
+ '
+-IFS=" $tab$nl"
++IFS=" ""	$nl"
+ 
+-# Set DOITPROG to "echo" to test this script.
++# set DOITPROG to echo to test this script
+ 
++# Don't use :- since 4.3BSD and earlier shells don't like it.
+ doit=${DOITPROG-}
+-doit_exec=${doit:-exec}
++if test -z "$doit"; then
++  doit_exec=exec
++else
++  doit_exec=$doit
++fi
+ 
+ # Put in absolute file names if you don't have them in your path;
+ # or use environment vars.
+@@ -64,6 +68,17 @@
+ rmprog=${RMPROG-rm}
+ stripprog=${STRIPPROG-strip}
+ 
++posix_glob='?'
++initialize_posix_glob='
++  test "$posix_glob" != "?" || {
++    if (set -f) 2>/dev/null; then
++      posix_glob=
++    else
++      posix_glob=:
++    fi
++  }
++'
++
+ posix_mkdir=
+ 
+ # Desired mode of installed file.
+@@ -82,7 +97,7 @@
+ dst_arg=
+ 
+ copy_on_change=false
+-is_target_a_directory=possibly
++no_target_directory=
+ 
+ usage="\
+ Usage: $0 [OPTION]... [-T] SRCFILE DSTFILE
+@@ -122,57 +137,46 @@
+     -d) dir_arg=true;;
+ 
+     -g) chgrpcmd="$chgrpprog $2"
+-        shift;;
++	shift;;
+ 
+     --help) echo "$usage"; exit $?;;
+ 
+     -m) mode=$2
+-        case $mode in
+-          *' '* | *"$tab"* | *"$nl"* | *'*'* | *'?'* | *'['*)
+-            echo "$0: invalid mode: $mode" >&2
+-            exit 1;;
+-        esac
+-        shift;;
++	case $mode in
++	  *' '* | *'	'* | *'
++'*	  | *'*'* | *'?'* | *'['*)
++	    echo "$0: invalid mode: $mode" >&2
++	    exit 1;;
++	esac
++	shift;;
+ 
+     -o) chowncmd="$chownprog $2"
+-        shift;;
++	shift;;
+ 
+     -s) stripcmd=$stripprog;;
+ 
+-    -t)
+-        is_target_a_directory=always
+-        dst_arg=$2
+-        # Protect names problematic for 'test' and other utilities.
+-        case $dst_arg in
+-          -* | [=\(\)!]) dst_arg=./$dst_arg;;
+-        esac
+-        shift;;
++    -t) dst_arg=$2
++	# Protect names problematic for 'test' and other utilities.
++	case $dst_arg in
++	  -* | [=\(\)!]) dst_arg=./$dst_arg;;
++	esac
++	shift;;
+ 
+-    -T) is_target_a_directory=never;;
++    -T) no_target_directory=true;;
+ 
+     --version) echo "$0 $scriptversion"; exit $?;;
+ 
+-    --) shift
+-        break;;
++    --)	shift
++	break;;
+ 
+-    -*) echo "$0: invalid option: $1" >&2
+-        exit 1;;
++    -*)	echo "$0: invalid option: $1" >&2
++	exit 1;;
+ 
+     *)  break;;
+   esac
+   shift
+ done
+ 
+-# We allow the use of options -d and -T together, by making -d
+-# take the precedence; this is for compatibility with GNU install.
+-
+-if test -n "$dir_arg"; then
+-  if test -n "$dst_arg"; then
+-    echo "$0: target directory not allowed when installing a directory." >&2
+-    exit 1
+-  fi
+-fi
+-
+ if test $# -ne 0 && test -z "$dir_arg$dst_arg"; then
+   # When -d is used, all remaining arguments are directories to create.
+   # When -t is used, the destination is already specified.
+@@ -204,15 +208,6 @@
+ fi
+ 
+ if test -z "$dir_arg"; then
+-  if test $# -gt 1 || test "$is_target_a_directory" = always; then
+-    if test ! -d "$dst_arg"; then
+-      echo "$0: $dst_arg: Is not a directory." >&2
+-      exit 1
+-    fi
+-  fi
+-fi
+-
+-if test -z "$dir_arg"; then
+   do_exit='(exit $ret); exit $ret'
+   trap "ret=129; $do_exit" 1
+   trap "ret=130; $do_exit" 2
+@@ -228,16 +223,16 @@
+ 
+     *[0-7])
+       if test -z "$stripcmd"; then
+-        u_plus_rw=
++	u_plus_rw=
+       else
+-        u_plus_rw='% 200'
++	u_plus_rw='% 200'
+       fi
+       cp_umask=`expr '(' 777 - $mode % 1000 ')' $u_plus_rw`;;
+     *)
+       if test -z "$stripcmd"; then
+-        u_plus_rw=
++	u_plus_rw=
+       else
+-        u_plus_rw=,u+rw
++	u_plus_rw=,u+rw
+       fi
+       cp_umask=$mode$u_plus_rw;;
+   esac
+@@ -274,15 +269,41 @@
+     # If destination is a directory, append the input filename; won't work
+     # if double slashes aren't ignored.
+     if test -d "$dst"; then
+-      if test "$is_target_a_directory" = never; then
+-        echo "$0: $dst_arg: Is a directory" >&2
+-        exit 1
++      if test -n "$no_target_directory"; then
++	echo "$0: $dst_arg: Is a directory" >&2
++	exit 1
+       fi
+       dstdir=$dst
+       dst=$dstdir/`basename "$src"`
+       dstdir_status=0
+     else
+-      dstdir=`dirname "$dst"`
++      # Prefer dirname, but fall back on a substitute if dirname fails.
++      dstdir=`
++	(dirname "$dst") 2>/dev/null ||
++	expr X"$dst" : 'X\(.*[^/]\)//*[^/][^/]*/*$' \| \
++	     X"$dst" : 'X\(//\)[^/]' \| \
++	     X"$dst" : 'X\(//\)$' \| \
++	     X"$dst" : 'X\(/\)' \| . 2>/dev/null ||
++	echo X"$dst" |
++	    sed '/^X\(.*[^/]\)\/\/*[^/][^/]*\/*$/{
++		   s//\1/
++		   q
++		 }
++		 /^X\(\/\/\)[^/].*/{
++		   s//\1/
++		   q
++		 }
++		 /^X\(\/\/\)$/{
++		   s//\1/
++		   q
++		 }
++		 /^X\(\/\).*/{
++		   s//\1/
++		   q
++		 }
++		 s/.*/./; q'
++      `
++
+       test -d "$dstdir"
+       dstdir_status=$?
+     fi
+@@ -293,74 +314,74 @@
+   if test $dstdir_status != 0; then
+     case $posix_mkdir in
+       '')
+-        # Create intermediate dirs using mode 755 as modified by the umask.
+-        # This is like FreeBSD 'install' as of 1997-10-28.
+-        umask=`umask`
+-        case $stripcmd.$umask in
+-          # Optimize common cases.
+-          *[2367][2367]) mkdir_umask=$umask;;
+-          .*0[02][02] | .[02][02] | .[02]) mkdir_umask=22;;
+-
+-          *[0-7])
+-            mkdir_umask=`expr $umask + 22 \
+-              - $umask % 100 % 40 + $umask % 20 \
+-              - $umask % 10 % 4 + $umask % 2
+-            `;;
+-          *) mkdir_umask=$umask,go-w;;
+-        esac
+-
+-        # With -d, create the new directory with the user-specified mode.
+-        # Otherwise, rely on $mkdir_umask.
+-        if test -n "$dir_arg"; then
+-          mkdir_mode=-m$mode
+-        else
+-          mkdir_mode=
+-        fi
+-
+-        posix_mkdir=false
+-        case $umask in
+-          *[123567][0-7][0-7])
+-            # POSIX mkdir -p sets u+wx bits regardless of umask, which
+-            # is incompatible with FreeBSD 'install' when (umask & 300) != 0.
+-            ;;
+-          *)
+-            tmpdir=${TMPDIR-/tmp}/ins$RANDOM-$$
+-            trap 'ret=$?; rmdir "$tmpdir/d" "$tmpdir" 2>/dev/null; exit $ret' 0
+-
+-            if (umask $mkdir_umask &&
+-                exec $mkdirprog $mkdir_mode -p -- "$tmpdir/d") >/dev/null 2>&1
+-            then
+-              if test -z "$dir_arg" || {
+-                   # Check for POSIX incompatibilities with -m.
+-                   # HP-UX 11.23 and IRIX 6.5 mkdir -m -p sets group- or
+-                   # other-writable bit of parent directory when it shouldn't.
+-                   # FreeBSD 6.1 mkdir -m -p sets mode of existing directory.
+-                   ls_ld_tmpdir=`ls -ld "$tmpdir"`
+-                   case $ls_ld_tmpdir in
+-                     d????-?r-*) different_mode=700;;
+-                     d????-?--*) different_mode=755;;
+-                     *) false;;
+-                   esac &&
+-                   $mkdirprog -m$different_mode -p -- "$tmpdir" && {
+-                     ls_ld_tmpdir_1=`ls -ld "$tmpdir"`
+-                     test "$ls_ld_tmpdir" = "$ls_ld_tmpdir_1"
+-                   }
+-                 }
+-              then posix_mkdir=:
+-              fi
+-              rmdir "$tmpdir/d" "$tmpdir"
+-            else
+-              # Remove any dirs left behind by ancient mkdir implementations.
+-              rmdir ./$mkdir_mode ./-p ./-- 2>/dev/null
+-            fi
+-            trap '' 0;;
+-        esac;;
++	# Create intermediate dirs using mode 755 as modified by the umask.
++	# This is like FreeBSD 'install' as of 1997-10-28.
++	umask=`umask`
++	case $stripcmd.$umask in
++	  # Optimize common cases.
++	  *[2367][2367]) mkdir_umask=$umask;;
++	  .*0[02][02] | .[02][02] | .[02]) mkdir_umask=22;;
++
++	  *[0-7])
++	    mkdir_umask=`expr $umask + 22 \
++	      - $umask % 100 % 40 + $umask % 20 \
++	      - $umask % 10 % 4 + $umask % 2
++	    `;;
++	  *) mkdir_umask=$umask,go-w;;
++	esac
++
++	# With -d, create the new directory with the user-specified mode.
++	# Otherwise, rely on $mkdir_umask.
++	if test -n "$dir_arg"; then
++	  mkdir_mode=-m$mode
++	else
++	  mkdir_mode=
++	fi
++
++	posix_mkdir=false
++	case $umask in
++	  *[123567][0-7][0-7])
++	    # POSIX mkdir -p sets u+wx bits regardless of umask, which
++	    # is incompatible with FreeBSD 'install' when (umask & 300) != 0.
++	    ;;
++	  *)
++	    tmpdir=${TMPDIR-/tmp}/ins$RANDOM-$$
++	    trap 'ret=$?; rmdir "$tmpdir/d" "$tmpdir" 2>/dev/null; exit $ret' 0
++
++	    if (umask $mkdir_umask &&
++		exec $mkdirprog $mkdir_mode -p -- "$tmpdir/d") >/dev/null 2>&1
++	    then
++	      if test -z "$dir_arg" || {
++		   # Check for POSIX incompatibilities with -m.
++		   # HP-UX 11.23 and IRIX 6.5 mkdir -m -p sets group- or
++		   # other-writable bit of parent directory when it shouldn't.
++		   # FreeBSD 6.1 mkdir -m -p sets mode of existing directory.
++		   ls_ld_tmpdir=`ls -ld "$tmpdir"`
++		   case $ls_ld_tmpdir in
++		     d????-?r-*) different_mode=700;;
++		     d????-?--*) different_mode=755;;
++		     *) false;;
++		   esac &&
++		   $mkdirprog -m$different_mode -p -- "$tmpdir" && {
++		     ls_ld_tmpdir_1=`ls -ld "$tmpdir"`
++		     test "$ls_ld_tmpdir" = "$ls_ld_tmpdir_1"
++		   }
++		 }
++	      then posix_mkdir=:
++	      fi
++	      rmdir "$tmpdir/d" "$tmpdir"
++	    else
++	      # Remove any dirs left behind by ancient mkdir implementations.
++	      rmdir ./$mkdir_mode ./-p ./-- 2>/dev/null
++	    fi
++	    trap '' 0;;
++	esac;;
+     esac
+ 
+     if
+       $posix_mkdir && (
+-        umask $mkdir_umask &&
+-        $doit_exec $mkdirprog $mkdir_mode -p -- "$dstdir"
++	umask $mkdir_umask &&
++	$doit_exec $mkdirprog $mkdir_mode -p -- "$dstdir"
+       )
+     then :
+     else
+@@ -370,51 +391,53 @@
+       # directory the slow way, step by step, checking for races as we go.
+ 
+       case $dstdir in
+-        /*) prefix='/';;
+-        [-=\(\)!]*) prefix='./';;
+-        *)  prefix='';;
++	/*) prefix='/';;
++	[-=\(\)!]*) prefix='./';;
++	*)  prefix='';;
+       esac
+ 
++      eval "$initialize_posix_glob"
++
+       oIFS=$IFS
+       IFS=/
+-      set -f
++      $posix_glob set -f
+       set fnord $dstdir
+       shift
+-      set +f
++      $posix_glob set +f
+       IFS=$oIFS
+ 
+       prefixes=
+ 
+       for d
+       do
+-        test X"$d" = X && continue
++	test X"$d" = X && continue
+ 
+-        prefix=$prefix$d
+-        if test -d "$prefix"; then
+-          prefixes=
+-        else
+-          if $posix_mkdir; then
+-            (umask=$mkdir_umask &&
+-             $doit_exec $mkdirprog $mkdir_mode -p -- "$dstdir") && break
+-            # Don't fail if two instances are running concurrently.
+-            test -d "$prefix" || exit 1
+-          else
+-            case $prefix in
+-              *\'*) qprefix=`echo "$prefix" | sed "s/'/'\\\\\\\\''/g"`;;
+-              *) qprefix=$prefix;;
+-            esac
+-            prefixes="$prefixes '$qprefix'"
+-          fi
+-        fi
+-        prefix=$prefix/
++	prefix=$prefix$d
++	if test -d "$prefix"; then
++	  prefixes=
++	else
++	  if $posix_mkdir; then
++	    (umask=$mkdir_umask &&
++	     $doit_exec $mkdirprog $mkdir_mode -p -- "$dstdir") && break
++	    # Don't fail if two instances are running concurrently.
++	    test -d "$prefix" || exit 1
++	  else
++	    case $prefix in
++	      *\'*) qprefix=`echo "$prefix" | sed "s/'/'\\\\\\\\''/g"`;;
++	      *) qprefix=$prefix;;
++	    esac
++	    prefixes="$prefixes '$qprefix'"
++	  fi
++	fi
++	prefix=$prefix/
+       done
+ 
+       if test -n "$prefixes"; then
+-        # Don't fail if two instances are running concurrently.
+-        (umask $mkdir_umask &&
+-         eval "\$doit_exec \$mkdirprog $prefixes") ||
+-          test -d "$dstdir" || exit 1
+-        obsolete_mkdir_used=true
++	# Don't fail if two instances are running concurrently.
++	(umask $mkdir_umask &&
++	 eval "\$doit_exec \$mkdirprog $prefixes") ||
++	  test -d "$dstdir" || exit 1
++	obsolete_mkdir_used=true
+       fi
+     fi
+   fi
+@@ -449,12 +472,15 @@
+ 
+     # If -C, don't bother to copy if it wouldn't change the file.
+     if $copy_on_change &&
+-       old=`LC_ALL=C ls -dlL "$dst"     2>/dev/null` &&
+-       new=`LC_ALL=C ls -dlL "$dsttmp"  2>/dev/null` &&
+-       set -f &&
++       old=`LC_ALL=C ls -dlL "$dst"	2>/dev/null` &&
++       new=`LC_ALL=C ls -dlL "$dsttmp"	2>/dev/null` &&
++
++       eval "$initialize_posix_glob" &&
++       $posix_glob set -f &&
+        set X $old && old=:$2:$4:$5:$6 &&
+        set X $new && new=:$2:$4:$5:$6 &&
+-       set +f &&
++       $posix_glob set +f &&
++
+        test "$old" = "$new" &&
+        $cmpprog "$dst" "$dsttmp" >/dev/null 2>&1
+     then
+@@ -467,24 +493,24 @@
+       # to itself, or perhaps because mv is so ancient that it does not
+       # support -f.
+       {
+-        # Now remove or move aside any old file at destination location.
+-        # We try this two ways since rm can't unlink itself on some
+-        # systems and the destination file might be busy for other
+-        # reasons.  In this case, the final cleanup might fail but the new
+-        # file should still install successfully.
+-        {
+-          test ! -f "$dst" ||
+-          $doit $rmcmd -f "$dst" 2>/dev/null ||
+-          { $doit $mvcmd -f "$dst" "$rmtmp" 2>/dev/null &&
+-            { $doit $rmcmd -f "$rmtmp" 2>/dev/null; :; }
+-          } ||
+-          { echo "$0: cannot unlink or rename $dst" >&2
+-            (exit 1); exit 1
+-          }
+-        } &&
++	# Now remove or move aside any old file at destination location.
++	# We try this two ways since rm can't unlink itself on some
++	# systems and the destination file might be busy for other
++	# reasons.  In this case, the final cleanup might fail but the new
++	# file should still install successfully.
++	{
++	  test ! -f "$dst" ||
++	  $doit $rmcmd -f "$dst" 2>/dev/null ||
++	  { $doit $mvcmd -f "$dst" "$rmtmp" 2>/dev/null &&
++	    { $doit $rmcmd -f "$rmtmp" 2>/dev/null; :; }
++	  } ||
++	  { echo "$0: cannot unlink or rename $dst" >&2
++	    (exit 1); exit 1
++	  }
++	} &&
+ 
+-        # Now rename the file to the real destination.
+-        $doit $mvcmd "$dsttmp" "$dst"
++	# Now rename the file to the real destination.
++	$doit $mvcmd "$dsttmp" "$dst"
+       }
+     fi || exit 1
+ 
+--- a/ltmain.sh
++++ b/ltmain.sh
+@@ -70,7 +70,7 @@
+ #         compiler:		$LTCC
+ #         compiler flags:		$LTCFLAGS
+ #         linker:		$LD (gnu? $with_gnu_ld)
+-#         $progname:	(GNU libtool) 2.4.2
++#         $progname:	(GNU libtool) 2.4.2 Debian-2.4.2-1.11
+ #         automake:	$automake_version
+ #         autoconf:	$autoconf_version
+ #
+@@ -80,7 +80,7 @@
+ 
+ PROGRAM=libtool
+ PACKAGE=libtool
+-VERSION=2.4.2
++VERSION="2.4.2 Debian-2.4.2-1.11"
+ TIMESTAMP=""
+ package_revision=1.3337
+ 
+@@ -6124,7 +6124,10 @@
+ 	case $pass in
+ 	dlopen) libs="$dlfiles" ;;
+ 	dlpreopen) libs="$dlprefiles" ;;
+-	link) libs="$deplibs %DEPLIBS% $dependency_libs" ;;
++	link)
++	  libs="$deplibs %DEPLIBS%"
++	  test "X$link_all_deplibs" != Xno && libs="$libs $dependency_libs"
++	  ;;
+ 	esac
+       fi
+       if test "$linkmode,$pass" = "lib,dlpreopen"; then
+@@ -6444,19 +6447,19 @@
+ 	    # It is a libtool convenience library, so add in its objects.
+ 	    func_append convenience " $ladir/$objdir/$old_library"
+ 	    func_append old_convenience " $ladir/$objdir/$old_library"
++	    tmp_libs=
++	    for deplib in $dependency_libs; do
++	      deplibs="$deplib $deplibs"
++	      if $opt_preserve_dup_deps ; then
++		case "$tmp_libs " in
++		*" $deplib "*) func_append specialdeplibs " $deplib" ;;
++		esac
++	      fi
++	      func_append tmp_libs " $deplib"
++	    done
+ 	  elif test "$linkmode" != prog && test "$linkmode" != lib; then
+ 	    func_fatal_error "\`$lib' is not a convenience library"
+ 	  fi
+-	  tmp_libs=
+-	  for deplib in $dependency_libs; do
+-	    deplibs="$deplib $deplibs"
+-	    if $opt_preserve_dup_deps ; then
+-	      case "$tmp_libs " in
+-	      *" $deplib "*) func_append specialdeplibs " $deplib" ;;
+-	      esac
+-	    fi
+-	    func_append tmp_libs " $deplib"
+-	  done
+ 	  continue
+ 	fi # $pass = conv
+ 
+@@ -7349,6 +7352,9 @@
+ 	    revision="$number_minor"
+ 	    lt_irix_increment=no
+ 	    ;;
++	  *)
++	    func_fatal_configuration "$modename: unknown library version type \`$version_type'"
++	    ;;
+ 	  esac
+ 	  ;;
+ 	no)
+--- a/missing
++++ b/missing
+@@ -3,7 +3,7 @@
+ 
+ scriptversion=2013-10-28.13; # UTC
+ 
+-# Copyright (C) 1996-2014 Free Software Foundation, Inc.
++# Copyright (C) 1996-2013 Free Software Foundation, Inc.
+ # Originally written by Fran,cois Pinard <pinard@iro.umontreal.ca>, 1996.
+ 
+ # This program is free software; you can redistribute it and/or modify
