@@ -10,8 +10,8 @@ dnl
 
 m4_define([xfwm4_version_major], [4])
 m4_define([xfwm4_version_minor], [12])
-m4_define([xfwm4_version_micro], [3])
-m4_define([xfwm4_version_build], [7fdcb53])
+m4_define([xfwm4_version_micro], [4])
+m4_define([xfwm4_version_build], [7844952])
 m4_define([xfwm4_version_tag],   [])
 m4_define([xfwm4_version], [xfwm4_version_major().xfwm4_version_minor().xfwm4_version_micro()ifelse(xfwm4_version_tag(), [git], [xfwm4_version_tag().xfwm4_version_build()], [xfwm4_version_tag()])])
 
@@ -244,8 +244,8 @@ dnl Check for debugging support
 XDT_FEATURE_DEBUG
 
 REVISION=unknown
-if test x"7fdcb53" != x""; then
-    REVISION=7fdcb53
+if test x"7844952" != x""; then
+    REVISION=7844952
 fi
 AC_DEFINE_UNQUOTED([REVISION], "$REVISION", [git id])
 AC_SUBST([REVISION])

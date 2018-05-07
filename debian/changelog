@@ -1,3 +1,10 @@
+xfwm4 (4.12.4-0ubuntu1) devel; urgency=medium
+
+  * New upstream bugfix release.
+    - Drop upstream patches.
+
+ -- Unit 193 <unit193@ubuntu.com>  Fri, 17 Mar 2017 17:46:30 -0400
+
 xfwm4 (4.12.3-1ubuntu2) xenial; urgency=medium
 
   * Merge from Debian unreleased VCS (LP: #1535112), remaining changes:

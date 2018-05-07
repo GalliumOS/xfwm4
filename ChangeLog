@@ -1,3 +1,152 @@
+commit 784495224f9ee43868960e573720c9257c950d1f
+Author: Olivier Fourdan <fourdan@xfce.org>
+Date:   Thu Mar 16 09:05:59 2017 +0100
+
+    Release 4.12.4!
+    
+    Signed-off-by: Olivier Fourdan <fourdan@xfce.org>
+
+commit e5cc883ea0d7b3836ed259b168cdcd8cea598634
+Author: Olivier Fourdan <fourdan@xfce.org>
+Date:   Mon Mar 6 22:15:21 2017 +0100
+
+    moveresize: Cancel move/resize if client is gone
+    
+    Bug: 13344
+    
+    If a window is unmapped while the user is moving or resizing it, we
+    would cancel the move but swallow the event, which would leave the
+    window frame on screen as the main event handle would not get the
+    unmap notify.
+    
+    Mark the client as gone when detected in the move/resize event loop,
+    let the event get through to the main event handler that will free the
+    client and shortcut the move/resize operation if the client is marked
+    as gone.
+    
+    (cherry picked from commit 5155c86cfc198946fdf9d55f88b187a58b0340fc)
+
+commit ef1d971fb22342c88b557458a451238ecfa0f656
+Author: Olivier Fourdan <fourdan@xfce.org>
+Date:   Mon Mar 6 16:24:51 2017 +0100
+
+    netwm: Make docks and spash screens appear focused
+    
+    The panel is a dock window, and may appear differently as it is not
+    focused by default by the window manager.
+    
+    Set the NET_WM_STATE_FOCUSED property on windows of type dock or
+    spashscreen so that they don't get the state GTK_STATE_FLAG_BACKDROP set
+    by default.
+    
+    (cherry picked from commit 0feb29e78bb3b36387950dc2fb8d991ac875a374)
+
+commit 6b94d5a212772d4015769a4e4ad83f62478b0bc3
+Author: Olivier Fourdan <fourdan@xfce.org>
+Date:   Fri May 27 17:35:42 2016 +0200
+
+    placement: Relocate dialogs only
+    
+    Bug: 12587
+    
+    Relocating any window on the current monitor in multi-monitor setup
+    when centered can cause issues with Citrix.
+    
+    Relocate only dialogs, and when not the exact same size as the screen.
+    
+    Signed-off-by: Olivier Fourdan <fourdan@xfce.org>
+
+commit 47fa600fb820a36bd5b08c13b5923a3b712ac8a0
+Author: Keith Packard <keithp@keithp.com>
+Date:   Thu Jun 2 11:36:48 2016 -0700
+
+    Force application win_gravity to NorthWestGravity
+    
+    LibreOffice incorrectly sets its top level windows win_gravity field
+    to StaticGravity. Resizing these windows to the left or upwards
+    results in a corrupted application with the application window moved
+    within the parent by the parent window resize.
+    
+    Metacity forces window gravity for all application windows to
+    NorthWest, masking this application bug. xfwm4 should do the same.
+    
+    A bug has been filed against LibreOffice as well.
+    
+    Signed-off-by: Keith Packard <keithp@keithp.com>
+
+commit 202703397713223033b3bf45dec82bae98ccc9c8
+Author: Olivier Fourdan <fourdan@xfce.org>
+Date:   Sat Apr 30 19:25:01 2016 +0200
+
+    keyboard: Re-apply modifiers masks
+    
+    Restore modifiers masks removed by mistake in previous commit.
+    
+    Signed-off-by: Olivier Fourdan <fourdan@xfce.org>
+
+commit 867ab66ceae1b75f9ea1df4591a1b73588221d89
+Author: Olivier Fourdan <fourdan@xfce.org>
+Date:   Sat Apr 30 19:13:07 2016 +0200
+
+    keyboard: Ignore unsupported modifiers
+    
+    Bug: 10760
+    
+    If a given keyboard modifier is not supported, ignore the shortcut.
+    
+    Signed-off-by: Olivier Fourdan <fourdan@xfce.org>
+
+commit 322f0bbb93d2d03df1e02b4e4acd69ab7f936c80
+Author: Andreas Müller <schnitzeltony@googlemail.com>
+Date:   Tue Jun 18 12:46:42 2013 +0200
+
+    don't block display events when time is set backwards
+    
+    Bug: 10184
+    
+    Signed-off-by: Andreas Müller <schnitzeltony@googlemail.com>
+
+commit 7bddfab7db53d6f45d51525b6adfa5c883cfa8c0
+Author: Stig Inge Lea Bjørnsen <stiginge@pvv.org>
+Date:   Sun Oct 4 16:27:05 2015 +0200
+
+    Fix rendering with 30-bit colormap
+    
+    Bug: 12344
+    
+    Use gdk_screen_get_system_colormap() instead of
+    gdk_screen_get_rgb_colormap() which returns NULL on a 30-bit screen and
+    therefore breaks further rendering.
+    
+    Originally reported in Debian bug #800883 where this patch was
+    attached.
+
+commit 612f264967477186451300b987349c08f5edb419
+Author: Olivier Fourdan <fourdan@xfce.org>
+Date:   Mon May 18 22:18:48 2015 +0200
+
+    Only check for known buttons in _NET_WM_MOVERESIZE
+    
+    For _NET_WM_MOVERESIZE requests, if the given button does not match any
+    available physical button, we would wait for that (impossible) button
+    combination to be released.
+    
+    Check that the given button is one of the well known button or just wait
+    for any button release otherwise.
+    
+    That fixes an issue with KDE apps where clicking on the menu bar to move
+    the window would hang forever after the mouse button is depressed.
+    
+    Signed-off-by: Olivier Fourdan <fourdan@xfce.org>
+
+commit c47ea5de0403210a9be8d7367ca59582e8e9a784
+Author: Olivier Fourdan <fourdan@xfce.org>
+Date:   Sat May 16 18:59:13 2015 +0200
+
+    Post release tag bump
+    
+    Signed-off-by: Olivier Fourdan <fourdan@xfce.org>
+
 commit 79ac4890d2883be7b4f6c22d89c5870ff664dbb9
 Author: Olivier Fourdan <fourdan@xfce.org>
 Date:   Sat May 16 18:46:54 2015 +0200
@@ -9721,8 +9870,8 @@ Date:   Tue Jun 1 17:48:12 2010 +0200
     
     Conflicts:
     
-    	ChangeLog
-    	po/ChangeLog
+            ChangeLog
+            po/ChangeLog
 
 commit e4b28e58a6722e3f56e661c71559438af5395fd6
 Author: Ivica  Kolić <ikoli@yahoo.com>
@@ -10599,7 +10748,7 @@ Date:   Sun Jan 10 10:22:34 2010 +0100
     Merge branch 'libxfce4ui' of ssh://git.xfce.org/git/xfce/xfwm4 into libxfce4ui
     
     Conflicts:
-    	configure.ac.in
+            configure.ac.in
 
 commit c1a867e65bf68dda3be3d48edcb63d4305192f7e
 Author: Stephan Arts <stephan@xfce.org>
@@ -11004,8 +11153,8 @@ commit 3ac1e2b8e0074bfb6356a3ee6378fc11c1b56aa9
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Sun Jul 26 14:14:01 2009 +0000
 
-    	* src/client.c: Focus window when activate comes from application
-    	  (otherwise the taskbar does not focus anymore).
+            * src/client.c: Focus window when activate comes from application
+              (otherwise the taskbar does not focus anymore).
     
     (Old svn revision: 30396)
 
@@ -11015,7 +11164,7 @@ Date:   Sat Jul 25 11:12:29 2009 +0000
 
     2009-07-25  Gabor Kelemen  <kelemeng@gnome.hu>
     
-    	* hu.po: Translation updated.
+            * hu.po: Translation updated.
     
     (Old svn revision: 30392)
 
@@ -11025,7 +11174,7 @@ Date:   Sat Jul 25 10:20:55 2009 +0000
 
     2009-07-25  Gabor Kelemen  <kelemeng@gnome.hu>
     
-    	* hu.po: Translation updated.
+            * hu.po: Translation updated.
     
     (Old svn revision: 30391)
 
@@ -11033,9 +11182,9 @@ commit 1e1e5e23095b1ebecaccf235585f0f9adec4b335
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Wed Jul 22 08:16:40 2009 +0000
 
-    	* src/focus.c: Place windows on top of stack even when not focused in
-    	  focus follow mouse.
-    	  (patch by Clifford Jolly<cliff@cliffjolly.com>).
+            * src/focus.c: Place windows on top of stack even when not focused in
+              focus follow mouse.
+              (patch by Clifford Jolly<cliff@cliffjolly.com>).
     
     (Old svn revision: 30377)
 
@@ -11045,7 +11194,7 @@ Date:   Fri Jul 10 12:33:49 2009 +0000
 
     2009-07-10  Gabor Kelemen  <kelemeng@gnome.hu>
     
-    	* hu.po: Translation reworked.
+            * hu.po: Translation reworked.
     
     (Old svn revision: 30240)
 
@@ -11053,12 +11202,12 @@ commit a320af58fc8cd2573272f7a75d3530fc1eb2b6f2
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Thu Jul 9 20:24:06 2009 +0000
 
-    	* src/cycle.c, src/events.c, src/client.c: Transition fullscreen
-    	  windows back to their original layer when another window is
-    	  activated (Bug #3551), do not clear the show desktop flag upon
-    	  activation of already visible windows,
-    	* src/moveresize.c: prelinminary support for snap on resize
-    	  (patch by Clifford Jolly<cliff@cliffjolly.com>)
+            * src/cycle.c, src/events.c, src/client.c: Transition fullscreen
+              windows back to their original layer when another window is
+              activated (Bug #3551), do not clear the show desktop flag upon
+              activation of already visible windows,
+            * src/moveresize.c: prelinminary support for snap on resize
+              (patch by Clifford Jolly<cliff@cliffjolly.com>)
     
     (Old svn revision: 30233)
 
@@ -11074,9 +11223,9 @@ commit f7df4ad674a7861793e91ee83fd452923acb7d9a
 Author: Jannis Pohlmann <jannis@xfce.org>
 Date:   Mon Jun 29 13:28:45 2009 +0000
 
-    	* themes/daloa/Makefile.am, themes/default-4.6/Makefile.am,
-    	  themes/default/Makefile.am, themes/kokodi/Makefile.am: Remove
-    	  duplicate hide-pressed.png entries from Makefile.am.
+            * themes/daloa/Makefile.am, themes/default-4.6/Makefile.am,
+              themes/default/Makefile.am, themes/kokodi/Makefile.am: Remove
+              duplicate hide-pressed.png entries from Makefile.am.
     
     (Old svn revision: 30127)
 
@@ -11120,8 +11269,8 @@ commit 3103413750baa21e5f0ed0e8630429a3534f4a69
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Fri May 22 12:52:55 2009 +0000
 
-    	* frame.c, tabwin.c: Fix mixed RTL/LTR text not rendering properly
-    	  in title and tabwin
+            * frame.c, tabwin.c: Fix mixed RTL/LTR text not rendering properly
+              in title and tabwin
     
     (Old svn revision: 29972)
 
@@ -11187,7 +11336,7 @@ commit 2aca1141030d17b66d85f3eb75f9b6b39732e15f
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Sun Apr 12 12:20:36 2009 +0000
 
-    	* configure.ac.in, themes/Makefile.am: Update versions
+            * configure.ac.in, themes/Makefile.am: Update versions
     
     (Old svn revision: 29777)
 
@@ -11203,8 +11352,8 @@ commit 631857bbecfe2a72a3bfbc471b66d11e07c756d1
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Thu Apr 9 11:30:27 2009 +0000
 
-    	* src/events.c, src/keyboard.c: Fix grab remaining if shortcut is not
-    	  used (Bug #5207)
+            * src/events.c, src/keyboard.c: Fix grab remaining if shortcut is not
+              used (Bug #5207)
     
     (Old svn revision: 29734)
 
@@ -11212,7 +11361,7 @@ commit 0872f122dc2ca64965250bf67370781cd79153b1
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Wed Apr 8 12:13:43 2009 +0000
 
-    	* src/compositor.c: Ignore stacking when detecting overlays
+            * src/compositor.c: Ignore stacking when detecting overlays
     
     (Old svn revision: 29732)
 
@@ -11220,8 +11369,8 @@ commit c14a2db37da0101adde8795608174527b1cf401a
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Wed Apr 8 10:55:35 2009 +0000
 
-    	* src/parserc.c, src/settings.c, src/events.c: Plug various memory
-    	  leaks
+            * src/parserc.c, src/settings.c, src/events.c: Plug various memory
+              leaks
     
     (Old svn revision: 29726)
 
@@ -11229,9 +11378,9 @@ commit ec761b2954164eed7fd72e2769d722605fa694dd
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Tue Apr 7 12:33:09 2009 +0000
 
-    	* src/compositor.c: Make fullscreen override opaque, so screensaver
-    	  is not partly transparent even if not unredirecting fullscreen
-    	  windows.
+            * src/compositor.c: Make fullscreen override opaque, so screensaver
+              is not partly transparent even if not unredirecting fullscreen
+              windows.
     
     (Old svn revision: 29705)
 
@@ -11239,8 +11388,8 @@ commit bad5e1cda6ecf8698398fcc230b05e4e40337026
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Sun Apr 5 17:00:43 2009 +0000
 
-    	* src/compositor.c: Check fullscreen status against each monitor and not
-    	  just the overall screen size in the compositor
+            * src/compositor.c: Check fullscreen status against each monitor and not
+              just the overall screen size in the compositor
     
     (Old svn revision: 29704)
 
@@ -11248,10 +11397,10 @@ commit bf34252a7548f8370f3fee2e00282b2c753440e3
 Author: Per Kongstad <p_kongstad@op.pl>
 Date:   Sat Apr 4 10:12:48 2009 +0000
 
-    	* da.po: Danish translation update (Per Kongstad)
-    	* da.po: Danish translation update (Per Kongstad)
-    	* da.po: Danish translation update (Per Kongstad)
-    	* da.po: Danish translation update (Per Kongstad)
+            * da.po: Danish translation update (Per Kongstad)
+            * da.po: Danish translation update (Per Kongstad)
+            * da.po: Danish translation update (Per Kongstad)
+            * da.po: Danish translation update (Per Kongstad)
     
     (Old svn revision: 29702)
 
@@ -11275,8 +11424,8 @@ commit 2a86f6c5988c86a11ea1da09e64c036807751bad
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Sat Mar 28 17:37:56 2009 +0000
 
-    	* src/netwm.c: Keep window layer when status is above, below or
-    	  fullscreen (Bug #5030)
+            * src/netwm.c: Keep window layer when status is above, below or
+              fullscreen (Bug #5030)
     
     (Old svn revision: 29688)
 
@@ -11292,7 +11441,7 @@ commit 04a62af5d41e3cffc02143c8e7321a69ceb79609
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Fri Mar 27 15:55:13 2009 +0000
 
-    	* src/placement.c: Do not not fill over adjacent windows (Bug #5152)
+            * src/placement.c: Do not not fill over adjacent windows (Bug #5152)
     
     (Old svn revision: 29685)
 
@@ -11300,9 +11449,9 @@ commit 8145d7e088f4a48eadeea6d6978d1e071d7d88ed
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Wed Mar 25 10:34:05 2009 +0000
 
-    	* src/client.c, src/cycle.c: Fix a long standing bug in xfwm4 4.6
-    	  were activating a transient would not regrab the mouse on parent
-    	  window.
+            * src/client.c, src/cycle.c: Fix a long standing bug in xfwm4 4.6
+              were activating a transient would not regrab the mouse on parent
+              window.
     
     (Old svn revision: 29683)
 
@@ -11318,10 +11467,10 @@ commit d6534ae3c7d123606a648b4f8554f2e481975f23
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Thu Mar 19 12:46:50 2009 +0000
 
-    	* src/netwm.c: Do not try to update last user timestamp if the given
-    	  timestamp is outdated, that avoids some unecessary warnings for
-    	  "Last user time set back to..." upon restart.
-    	  Fix raise delay settings in xfwm4 dialog being totally ignored
+            * src/netwm.c: Do not try to update last user timestamp if the given
+              timestamp is outdated, that avoids some unecessary warnings for
+              "Last user time set back to..." upon restart.
+              Fix raise delay settings in xfwm4 dialog being totally ignored
     
     (Old svn revision: 29674)
 
@@ -11329,10 +11478,10 @@ commit 20c1540d8d5609eefedcd3e4fd3ce8728a6bddd1
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Thu Mar 19 09:16:34 2009 +0000
 
-    	* settings-dialogs/xfwm4-settings.c,
-    	  settings-dialogs/xfwm4-dialog.glade,
-    	  src/settings.c: Reduce minimum timeout for focus delay in focus
-    	  follow mouse (100ms was way too much),
+            * settings-dialogs/xfwm4-settings.c,
+              settings-dialogs/xfwm4-dialog.glade,
+              src/settings.c: Reduce minimum timeout for focus delay in focus
+              follow mouse (100ms was way too much),
     
     (Old svn revision: 29673)
 
@@ -11348,8 +11497,8 @@ commit 7479326487b45b8746a8fa3fb76c6fa71160eb2a
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Fri Mar 13 10:36:42 2009 +0000
 
-    	* src/focus.c: do not set the demand attendtion flag if the
-    	  application itself has set a nil timestamp.
+            * src/focus.c: do not set the demand attendtion flag if the
+              application itself has set a nil timestamp.
     
     (Old svn revision: 29658)
 
@@ -11357,10 +11506,10 @@ commit cb304224a6fda01d853e5b8076884c5b42d8975b
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Fri Mar 13 10:28:32 2009 +0000
 
-    	* src/focus.c, serc/netwm.c: Check for nil timestamp regardless of
-    	  focus stealing prevention setting, so that applications using
-    	  gtk_window_set_focus_on_map() don't get focused even when focus
-    	  stealing prevention is disabled (Bug #5044)
+            * src/focus.c, serc/netwm.c: Check for nil timestamp regardless of
+              focus stealing prevention setting, so that applications using
+              gtk_window_set_focus_on_map() don't get focused even when focus
+              stealing prevention is disabled (Bug #5044)
     
     (Old svn revision: 29657)
 
@@ -11368,8 +11517,8 @@ commit 7658cbc0177e14f78ce4e7122be58cab67d8f66f
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Fri Mar 13 10:07:48 2009 +0000
 
-    	* src/compositor.c: Reduce repaint timeout in the compositor
-    	  (Bug #5080)
+            * src/compositor.c: Reduce repaint timeout in the compositor
+              (Bug #5080)
     
     (Old svn revision: 29656)
 
@@ -11393,7 +11542,7 @@ commit 68970938f567c4678c262e7c308abd85440553e5
 Author: Masato Hashimoto <cabezon.hashimoto@gmail.com>
 Date:   Sat Feb 28 07:10:29 2009 +0000
 
-    	* ja.po: Japanese translation update (Masato Hashimoto)
+            * ja.po: Japanese translation update (Masato Hashimoto)
     
     (Old svn revision: 29636)
 
@@ -11411,8 +11560,8 @@ commit 050b0c2e90eb8c2bd9f1005919510eb266555649
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Tue Feb 24 19:06:19 2009 +0000
 
-    	  settings-dialogs/tweaks-settings.c: Include gdk.h & gdkx.h
-    	* settings-dialogs/xfwm4-settings.c,
+              settings-dialogs/tweaks-settings.c: Include gdk.h & gdkx.h
+            * settings-dialogs/xfwm4-settings.c,
     
     (Old svn revision: 29573)
 
@@ -11420,9 +11569,9 @@ commit 71bc28166e71ddc596dc352488509bff9cee1c22
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Tue Feb 24 18:53:37 2009 +0000
 
-    	* settings-dialogs/xfwm4-settings.c,
-    	  settings-dialogs/tweaks-settings.c: Do not run setting dialogs if
-    	  current window manager is not xfwm4 (Bug #4989).
+            * settings-dialogs/xfwm4-settings.c,
+              settings-dialogs/tweaks-settings.c: Do not run setting dialogs if
+              current window manager is not xfwm4 (Bug #4989).
     
     (Old svn revision: 29572)
 
@@ -11430,8 +11579,8 @@ commit 244025611bfca21df3491c5cbd0ae2bcd9a1fd8a
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Mon Feb 23 23:59:06 2009 +0000
 
-    	* src/cycle.c, src/moveresize.c: Make sure any active grab on the
-    	  keyboard and pointer are released  (Corollary to bug #4959).
+            * src/cycle.c, src/moveresize.c: Make sure any active grab on the
+              keyboard and pointer are released  (Corollary to bug #4959).
     
     (Old svn revision: 29550)
 
@@ -11439,10 +11588,10 @@ commit 6d99502b9ee65dd4fa7649f9327e64b38707d7ec
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Mon Feb 23 10:06:52 2009 +0000
 
-    	* src/netwm.h, src/netwm.c, src/client.h, src/client.c, src/events.c,
-    	  src/focus.c: Capture user time at startup, a bit of refactoring to
-    	  avoid duplication of code (that led to this bug to remain after a
-    	  similar fix went previously in to events.c in revision 29456).
+            * src/netwm.h, src/netwm.c, src/client.h, src/client.c, src/events.c,
+              src/focus.c: Capture user time at startup, a bit of refactoring to
+              avoid duplication of code (that led to this bug to remain after a
+              similar fix went previously in to events.c in revision 29456).
     
     (Old svn revision: 29542)
 
@@ -11482,8 +11631,8 @@ commit 043949d1fad790242bb0ab0eccca68d0efe68385
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Fri Feb 20 22:02:35 2009 +0000
 
-    	* src/events.c: Only release events on identified key shortcut
-    	  (Bug #4959).
+            * src/events.c: Only release events on identified key shortcut
+              (Bug #4959).
     
     
     (Old svn revision: 29524)
@@ -11492,9 +11641,9 @@ commit 9efcc9505211eeca5c8159024ad4fcc37f6d896c
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Fri Feb 20 12:37:26 2009 +0000
 
-    	* src/events.c: And do not release events on key release, as Super is
-    	  both a modifier and a regular key that repeats, it breaks when used
-    	  as a modifier (Bug #4959).
+            * src/events.c: And do not release events on key release, as Super is
+              both a modifier and a regular key that repeats, it breaks when used
+              as a modifier (Bug #4959).
     
     
     (Old svn revision: 29519)
@@ -11503,8 +11652,8 @@ commit 8133e62e92b9def06011c6e6901e653fc111f5c0
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Thu Feb 19 12:54:58 2009 +0000
 
-    	* src/events.c: Use timestamp provided by the event itself to
-    	  release queued events (Bug #4959).
+            * src/events.c: Use timestamp provided by the event itself to
+              release queued events (Bug #4959).
     
     
     (Old svn revision: 29516)
@@ -11513,7 +11662,7 @@ commit 4e3c30566d55471d40d56fff2023a18f83dddd82
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Thu Feb 19 11:21:29 2009 +0000
 
-    	* src/events.c: Use more appropriate callback function name (trivial).
+            * src/events.c: Use more appropriate callback function name (trivial).
     
     
     (Old svn revision: 29515)
@@ -11522,8 +11671,8 @@ commit dea2097b2247a77a6e74fb5bcb335d700fae638b
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Thu Feb 19 09:56:25 2009 +0000
 
-    	* src/settings.c, src/events.c, src/screen.c, src/screen.h: Apply
-    	  font settings changes in real time (DPI, hinting, hint style, rgba).
+            * src/settings.c, src/events.c, src/screen.c, src/screen.h: Apply
+              font settings changes in real time (DPI, hinting, hint style, rgba).
     
     
     (Old svn revision: 29514)
@@ -11532,9 +11681,9 @@ commit e0104830ea53942d09ca3b92835a7a44ca23501f
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Wed Feb 18 22:21:16 2009 +0000
 
-    	* settings-dialogs/workspace-settings.c: Fix limits for margin being
-    	  inverted - patch by Mike Massonnet <mike.massonnet@gmail.com>
-    	  (Bug #4931).
+            * settings-dialogs/workspace-settings.c: Fix limits for margin being
+              inverted - patch by Mike Massonnet <mike.massonnet@gmail.com>
+              (Bug #4931).
     
     
     (Old svn revision: 29513)
@@ -11543,7 +11692,7 @@ commit 1ac1d0755520a30aa69cec9650dd9174f76f66e5
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Wed Feb 18 22:17:27 2009 +0000
 
-    	* src/placement.c: Same, still not right (Bug #4960).
+            * src/placement.c: Same, still not right (Bug #4960).
     
     
     (Old svn revision: 29512)
@@ -11552,8 +11701,8 @@ commit 5c62fc08139252e519126b3f16b8a45bfe9935c6
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Wed Feb 18 19:39:36 2009 +0000
 
-    	* src/placement.c: Fix size not properly computed by the fill
-    	  function with a dock on top or left (Bug #4960).
+            * src/placement.c: Fix size not properly computed by the fill
+              function with a dock on top or left (Bug #4960).
     
     
     (Old svn revision: 29511)
@@ -11562,7 +11711,7 @@ commit b8536020fa535b04f0eaa3b014ea6c7b2597fc77
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Tue Feb 17 09:31:28 2009 +0000
 
-    	* src/keyboard.c: Use proper type for returned value.
+            * src/keyboard.c: Use proper type for returned value.
     
     
     (Old svn revision: 29498)
@@ -11571,12 +11720,12 @@ commit c731b7fbedafd927ba00c66cc77682088beedb69
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Mon Feb 16 11:11:27 2009 +0000
 
-    	* src/events.c, src/client.c: Fix ICCCM synthetic unmap notify
-    	  handling causing a race condition with amule when started hidden
-    	  to system tray (Bug #4928). Note: This is still unclear to me
-    	  what is correct behaviour here, the problem reported in bug
-    	  #4928 happens with some other window managers too (e.g. kwin from
-    	  kde 4.2, fluxbox) but not with others (openbox, metacity, icewm).
+            * src/events.c, src/client.c: Fix ICCCM synthetic unmap notify
+              handling causing a race condition with amule when started hidden
+              to system tray (Bug #4928). Note: This is still unclear to me
+              what is correct behaviour here, the problem reported in bug
+              #4928 happens with some other window managers too (e.g. kwin from
+              kde 4.2, fluxbox) but not with others (openbox, metacity, icewm).
     
     (Old svn revision: 29493)
 
@@ -11600,10 +11749,10 @@ commit be3e2804e795a0cf6e796b911efc13df2ff496bd
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Sat Feb 7 20:10:39 2009 +0000
 
-    	* settings-dialogs/xfwm4-settings.c : Add the new parameter required
-    	  for the API change for xfce_shortcut_dialog_run(),
-    	  Add dependecy on libxfce4kbd_private revision.
-    	* src/events.c : Fix user time not being taken from the user time
+            * settings-dialogs/xfwm4-settings.c : Add the new parameter required
+              for the API change for xfce_shortcut_dialog_run(),
+              Add dependecy on libxfce4kbd_private revision.
+            * src/events.c : Fix user time not being taken from the user time
     
     
     (Old svn revision: 29467)
@@ -11613,9 +11762,9 @@ Author: Alexander Toresson <alexander.toresson@gmail.com>
 Date:   Sat Feb 7 20:02:49 2009 +0000
 
     xfwm4/trunk/po:
-    	* sv.po: Swedish translation update (Daniel Nylander)
+            * sv.po: Swedish translation update (Daniel Nylander)
     xfconf/trunk/po:
-    	* sv.po: Swedish translation update (Daniel Nylander)
+            * sv.po: Swedish translation update (Daniel Nylander)
     
     (Old svn revision: 29466)
 
@@ -11623,11 +11772,11 @@ commit 487ead8df0f23b2190d9c943fa517772baf8cc82
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Sat Feb 7 00:39:28 2009 +0000
 
-    	* src/events.c, : Fix user time not being taken from the user time
-    	  window for apps which support that protocol, that was breaking
-    	  focus stealing prevention for all gtk,
-    	  src/focus.c: Do not automatically give focus to windows placed on
-    	  lower layers, but focus those on upper layers at first map.
+            * src/events.c, : Fix user time not being taken from the user time
+              window for apps which support that protocol, that was breaking
+              focus stealing prevention for all gtk,
+              src/focus.c: Do not automatically give focus to windows placed on
+              lower layers, but focus those on upper layers at first map.
     
     
     (Old svn revision: 29456)
@@ -11636,11 +11785,11 @@ commit ba5bb567d266defebea9bc48bbe19b61d6e7c58f
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Thu Feb 5 13:06:46 2009 +0000
 
-    	* settings-dialogs/xfwm4-dialog.glade: Set minimum value for
-    	  wrap_resistance and snap_width (0 is not a valid value)
-    	  src/settings.c: clamp values to sensible defaults
-    	  src/events.c, src/moveresize.c: reduce the warping distance of the
-    	  mouse pointer (bug #3290)
+            * settings-dialogs/xfwm4-dialog.glade: Set minimum value for
+              wrap_resistance and snap_width (0 is not a valid value)
+              src/settings.c: clamp values to sensible defaults
+              src/events.c, src/moveresize.c: reduce the warping distance of the
+              mouse pointer (bug #3290)
     
     (Old svn revision: 29454)
 
@@ -11664,10 +11813,10 @@ commit 092b171ea8c30dba1684420810f3c17130f824af
 Author: Jannis Pohlmann <jannis@xfce.org>
 Date:   Sun Feb 1 22:42:42 2009 +0000
 
-    	* NEWS: Update NEWS file.
-    	* settings-dialogs/xfwm4-settings.c: When stealing a shortcut from
-    	  another shortcuts provider, clear the shortcut of that provider
-    	  first.
+            * NEWS: Update NEWS file.
+            * settings-dialogs/xfwm4-settings.c: When stealing a shortcut from
+              another shortcuts provider, clear the shortcut of that provider
+              first.
     
     (Old svn revision: 29427)
 
@@ -11675,9 +11824,9 @@ commit 31b5282ab75e3f5fc2120946732bced2de8803b9
 Author: Jannis Pohlmann <jannis@xfce.org>
 Date:   Sun Feb 1 13:35:26 2009 +0000
 
-    	* settings-dialogs/xfwm4-settings.c: Only display shortcut conflict
-    	  dialog if the action of the new shortcut differs from the one
-    	  that's being edited.
+            * settings-dialogs/xfwm4-settings.c: Only display shortcut conflict
+              dialog if the action of the new shortcut differs from the one
+              that's being edited.
     
     (Old svn revision: 29423)
 
@@ -11701,8 +11850,8 @@ commit deab146d77a9c7ab048483702cc103ce399381d7
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Thu Jan 29 20:50:40 2009 +0000
 
-    	* src/placement.c: Apparently someone is confusing East and West :)
-    	  Fix fill function not working with multiscreen.
+            * src/placement.c: Apparently someone is confusing East and West :)
+              Fix fill function not working with multiscreen.
     
     
     (Old svn revision: 29409)
@@ -11711,8 +11860,8 @@ commit 88e6c153e759019409f339d73583809e2a18841c
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Thu Jan 29 20:47:48 2009 +0000
 
-    	* src/events.c: Clear monitor cache when the screen size changes, but
-    	  avoid redoing the work twice in the case of a monitor-changed event.
+            * src/events.c: Clear monitor cache when the screen size changes, but
+              avoid redoing the work twice in the case of a monitor-changed event.
     
     
     (Old svn revision: 29408)
@@ -11721,10 +11870,10 @@ commit 6b637d354955a9e3401f138d0741f5d1370b7fea
 Author: Jannis Pohlmann <jannis@xfce.org>
 Date:   Mon Jan 26 01:24:11 2009 +0000
 
-    	* == 4.5.99.1 released! ==
-    	* NEWS: Update NEWS file for the release.
-    	* configure.ac.in: Bump version number and dependencies.
-     	* xfwm4.pot, *.po: Update translation files for the release.
+            * == 4.5.99.1 released! ==
+            * NEWS: Update NEWS file for the release.
+            * configure.ac.in: Bump version number and dependencies.
+            * xfwm4.pot, *.po: Update translation files for the release.
     
     (Old svn revision: 29379)
 
@@ -11732,8 +11881,8 @@ commit 174ad44f84173314df6afc779c7519442aba60f2
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Sun Jan 25 23:15:32 2009 +0000
 
-    	* settings-dialogs/xfwm4-settings.c: gtk, not glib for
-    	  gtk_selection_data_get_data()
+            * settings-dialogs/xfwm4-settings.c: gtk, not glib for
+              gtk_selection_data_get_data()
     
     (Old svn revision: 29365)
 
@@ -11741,8 +11890,8 @@ commit 15364b11cbc59d6c79bcb1cfe07dbb67ea333d22
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Sun Jan 25 21:00:33 2009 +0000
 
-    	* settings-dialogs/xfwm4-settings.c: gtk_selection_data_get_data() is
-    	  gtk+2.14 (Bug #4855)
+            * settings-dialogs/xfwm4-settings.c: gtk_selection_data_get_data() is
+              gtk+2.14 (Bug #4855)
     
     (Old svn revision: 29352)
 
@@ -11750,13 +11899,13 @@ commit 1afd2215f6c63e80c40d064fa156171ac797049c
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Sun Jan 25 17:59:12 2009 +0000
 
-    	* settings-dialogs/xfwm4-settings.c,
-    	  settings-dialogs/xfwm4-dialog.glade: Make title alignment and button
-    	  layout insensitive when not supported by the theme selected, fix a
-    	  memory leak,
-    	  configure.ac.in: Remove AC_C_CONST
-    	* settings-dialogs/xfwm4-settings.c: Fix dragging button layout when
-    	  the dialog is embedded in the settings dialog (Bug #4524).
+            * settings-dialogs/xfwm4-settings.c,
+              settings-dialogs/xfwm4-dialog.glade: Make title alignment and button
+              layout insensitive when not supported by the theme selected, fix a
+              memory leak,
+              configure.ac.in: Remove AC_C_CONST
+            * settings-dialogs/xfwm4-settings.c: Fix dragging button layout when
+              the dialog is embedded in the settings dialog (Bug #4524).
     
     (Old svn revision: 29349)
 
@@ -11773,9 +11922,9 @@ commit f128147411a235b1651520b7620f03b35c86c5a5
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Sat Jan 24 23:42:37 2009 +0000
 
-    	* src/display.c, src/display.h, src/events.c, src/client.c
-    	  src/client.h, src/hints.c, src/hints.h, src/netwm.c, README:
-    	  Add support for NET_WM_FULLSCREEN_MONITORS
+            * src/display.c, src/display.h, src/events.c, src/client.c
+              src/client.h, src/hints.c, src/hints.h, src/netwm.c, README:
+              Add support for NET_WM_FULLSCREEN_MONITORS
     
     (Old svn revision: 29311)
 
@@ -11783,7 +11932,7 @@ commit a97cd94cbe32ebf35f4e721e2d6bb6886fd0239d
 Author: Per Kongstad <p_kongstad@op.pl>
 Date:   Sat Jan 24 17:27:46 2009 +0000
 
-    	* da.po: Danish translation update (Per Kongstad)
+            * da.po: Danish translation update (Per Kongstad)
     
     
     
@@ -11807,7 +11956,7 @@ Date:   Sat Jan 24 17:27:46 2009 +0000
     
     
     
-     	* da.poÆ Danish translation update (Per Kongstad)
+            * da.poÆ Danish translation update (Per Kongstad)
     
     
     
@@ -11833,9 +11982,9 @@ commit 940fd6eb1248c9f20868fa326f4625b8fc5d9250
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Fri Jan 23 22:36:35 2009 +0000
 
-    	* src/parserc.c, src/settings.c, src/settings.c: Fix settings not
-    	  being set at startup (Bug #4845)
-    	  themes/default/*: Flatten default theme
+            * src/parserc.c, src/settings.c, src/settings.c: Fix settings not
+              being set at startup (Bug #4845)
+              themes/default/*: Flatten default theme
     
     (Old svn revision: 29303)
 
@@ -11843,8 +11992,8 @@ commit 7b66e23451b1394bb16fda988350bd0d135c9f92
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Wed Jan 21 19:02:13 2009 +0000
 
-    	* src/main.c: Command line option "--daemon" would have no effect
-    	  when xfwm4 connects to the session manager.
+            * src/main.c: Command line option "--daemon" would have no effect
+              when xfwm4 connects to the session manager.
     
     (Old svn revision: 29288)
 
@@ -11852,7 +12001,7 @@ commit 08d0d2ba9b26b1527aabdb0f4b736f2289daf516
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Tue Jan 20 09:18:13 2009 +0000
 
-    	* mcs-plugin: Removed.
+            * mcs-plugin: Removed.
     
     
     (Old svn revision: 29285)
@@ -11869,7 +12018,7 @@ commit 98961bc317cc40e7b6711f8b5ceb9318d0422ef5
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Sun Jan 18 21:51:46 2009 +0000
 
-    	* src/screen.c: Use G_MAXINT as default to make sure it's off bound.
+            * src/screen.c: Use G_MAXINT as default to make sure it's off bound.
     
     (Old svn revision: 29276)
 
@@ -11877,7 +12026,7 @@ commit d3782c48421f7127dda90f939cee95b95997169e
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Sun Jan 18 21:45:33 2009 +0000
 
-    	* src/*.c, src/*.h: Update year.
+            * src/*.c, src/*.h: Update year.
     
     (Old svn revision: 29275)
 
@@ -11885,10 +12034,10 @@ commit a6890e51adc48c27c9ce9b1ff019fb6d38450563
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Sun Jan 18 21:42:47 2009 +0000
 
-    	* src/client.c, src/events.c, src/moveresize.c, src/netwm.c,
-    	  src/placement.c, src/screen.c, src/screen.h, src/tabwin.c: Cache
-    	  the monitor geometry instead of just the monitor number, it's more
-    	  efficient.
+            * src/client.c, src/events.c, src/moveresize.c, src/netwm.c,
+              src/placement.c, src/screen.c, src/screen.h, src/tabwin.c: Cache
+              the monitor geometry instead of just the monitor number, it's more
+              efficient.
     
     (Old svn revision: 29274)
 
@@ -11905,23 +12054,23 @@ Author: Alexander Toresson <alexander.toresson@gmail.com>
 Date:   Sun Jan 18 12:32:33 2009 +0000
 
     xfce4-session/trunk/po:
-    	* sv.po: Swedish translation update (Daniel Nylander)
+            * sv.po: Swedish translation update (Daniel Nylander)
     xfce4-panel/trunk/po:
-    	* sv.po: Swedish translation update (Daniel Nylander)
+            * sv.po: Swedish translation update (Daniel Nylander)
     xfce4-settings/trunk/po:
-    	* sv.po: Swedish translation update (Daniel Nylander)
+            * sv.po: Swedish translation update (Daniel Nylander)
     libxfce4menu/trunk/po:
-    	* sv.po: Swedish translation update (Daniel Nylander)
+            * sv.po: Swedish translation update (Daniel Nylander)
     libxfce4util/trunk/po:
-    	* sv.po: Swedish translation update (Daniel Nylander)
+            * sv.po: Swedish translation update (Daniel Nylander)
     xfwm4/trunk/po:
-    	* sv.po: Swedish translation update (Daniel Nylander)
+            * sv.po: Swedish translation update (Daniel Nylander)
     xfce4-appfinder/trunk/po:
-    	* sv.po: Swedish translation update (Daniel Nylander)
+            * sv.po: Swedish translation update (Daniel Nylander)
     xfconf/trunk/po:
-    	* sv.po: Swedish translation update (Daniel Nylander)
+            * sv.po: Swedish translation update (Daniel Nylander)
     libxfcegui4/trunk/po:
-    	* sv.po: Swedish translation update (Daniel Nylander)
+            * sv.po: Swedish translation update (Daniel Nylander)
     
     (Old svn revision: 29271)
 
@@ -11929,9 +12078,9 @@ commit d3d74d41ad22c1fe4432429c0618da20b66b472c
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Sat Jan 17 13:57:48 2009 +0000
 
-    	* settings-dialogs/xfwm4-settings.c,
-    	  settings-dialogs/xfwm4-dialog.glade: Make focus delay insensitive
-    	  in click to focus mode.
+            * settings-dialogs/xfwm4-settings.c,
+              settings-dialogs/xfwm4-dialog.glade: Make focus delay insensitive
+              in click to focus mode.
     
     
     (Old svn revision: 29267)
@@ -11940,10 +12089,10 @@ commit 2c3371026c26e102b5f0115ef9307bdaa4dfa7f2
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Fri Jan 16 12:54:57 2009 +0000
 
-    	* src/misc.h, src/misc.c, src/screen.h, src/screen.c, src/events.c,
-    	  src/menu.c, src/tabwin.c, src/placement.c, src/client.c,
-    	  src/moveresize.c, src/netwm.c: Need to invalidate our internal
-    	  monitor caching when adding/removing monitors with randr 1.2
+            * src/misc.h, src/misc.c, src/screen.h, src/screen.c, src/events.c,
+              src/menu.c, src/tabwin.c, src/placement.c, src/client.c,
+              src/moveresize.c, src/netwm.c: Need to invalidate our internal
+              monitor caching when adding/removing monitors with randr 1.2
     
     
     (Old svn revision: 29263)
@@ -11960,7 +12109,7 @@ commit 2e57ad60b9de29084da2e6d8d64bf56a6fc20d42
 Author: Jannis Pohlmann <jannis@xfce.org>
 Date:   Wed Jan 14 21:22:41 2009 +0000
 
-    	* configure.in.in: Post-release version bump.
+            * configure.in.in: Post-release version bump.
     
     (Old svn revision: 29250)
 
@@ -11978,7 +12127,7 @@ commit 47954d5353db51a095fc7295dcd2cb3681176989
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Mon Jan 12 08:44:51 2009 +0000
 
-    	* NEWS: Typos
+            * NEWS: Typos
     
     (Old svn revision: 29187)
 
@@ -11994,8 +12143,8 @@ commit 48f101694506978bd0f25321ac0023322770b2f4
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Sun Jan 11 16:29:13 2009 +0000
 
-    	* src/focus.c: Do not place unfocused windows on top of the focused
-    	  window, when not focusing new windows (Bug #4795)
+            * src/focus.c: Do not place unfocused windows on top of the focused
+              window, when not focusing new windows (Bug #4795)
     
     (Old svn revision: 29163)
 
@@ -12003,8 +12152,8 @@ commit dc48e66a85335d15aedc75acf7c1ab1040c7703c
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Wed Jan 7 22:18:25 2009 +0000
 
-    	* settings-dialogs/xfwm4-settings.c: Remove markup not supported
-    	  by xfce_message_dialog() (Bug #4786)
+            * settings-dialogs/xfwm4-settings.c: Remove markup not supported
+              by xfce_message_dialog() (Bug #4786)
     
     (Old svn revision: 29115)
 
@@ -12012,8 +12161,8 @@ commit f8895120bad994ffe166723d4605a6bafc1316bf
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Wed Jan 7 09:19:49 2009 +0000
 
-    	* settings-dialogs/xfwm4-dialog.glade: Fix typo introduced in previous
-    	  update
+            * settings-dialogs/xfwm4-dialog.glade: Fix typo introduced in previous
+              update
     
     (Old svn revision: 29114)
 
@@ -12021,10 +12170,10 @@ commit c56b31b227d5124f87f961920fa49c2f2d7adff7
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Tue Jan 6 09:25:06 2009 +0000
 
-    	* settings-dialogs/xfwm4-settings.c,
-    	  settings-dialogs/xfwm4-dialog.glade,
-    	  settings-dialogs/tweaks-settings.c, po/*: Fix strings not being
-    	  localized (Bug #4740)
+            * settings-dialogs/xfwm4-settings.c,
+              settings-dialogs/xfwm4-dialog.glade,
+              settings-dialogs/tweaks-settings.c, po/*: Fix strings not being
+              localized (Bug #4740)
     
     
     (Old svn revision: 29105)
@@ -12069,8 +12218,8 @@ commit ac6af0138c859be13effd2cf28472347efa7a78b
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Wed Dec 24 18:17:20 2008 +0000
 
-    	* src/compositor.c, default/defaults, themes/default/themerc: Increase
-    	  shadow radius, center shadow by default.
+            * src/compositor.c, default/defaults, themes/default/themerc: Increase
+              shadow radius, center shadow by default.
     
     (Old svn revision: 29046)
 
@@ -12087,7 +12236,7 @@ Author: Alexander Toresson <alexander.toresson@gmail.com>
 Date:   Sun Dec 21 13:14:07 2008 +0000
 
     xfwm4/trunk/po:
-    	* sv.po: Swedish translation update (Daniel Nylander)
+            * sv.po: Swedish translation update (Daniel Nylander)
     
     (Old svn revision: 29038)
 
@@ -12103,10 +12252,10 @@ commit b3050dd75e9950597bca8f498d9725c1a0f28822
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Tue Dec 16 22:25:58 2008 +0000
 
-    	* settings-dialogs/xfwm4-workspace-dialog.glade,
-    	  settings-dialogs/xfwm4-tweaks-dialog.glade,
-    	  settings-dialogs/xfwm4-dialog.glade: Do not mark gtk+ stock labels as
-    	  translatable (Bug #4722)
+            * settings-dialogs/xfwm4-workspace-dialog.glade,
+              settings-dialogs/xfwm4-tweaks-dialog.glade,
+              settings-dialogs/xfwm4-dialog.glade: Do not mark gtk+ stock labels as
+              translatable (Bug #4722)
     
     (Old svn revision: 29030)
 
@@ -12114,8 +12263,8 @@ commit 8ecfb0d04ad7ec380f4b5b47e3513ff34d202f79
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Tue Dec 16 22:16:01 2008 +0000
 
-    	* src/placement.c: Prevent "fill" from expanding beyound physical
-    	  monitor.
+            * src/placement.c: Prevent "fill" from expanding beyound physical
+              monitor.
     
     (Old svn revision: 29029)
 
@@ -12150,9 +12299,9 @@ commit 1db542b369d9c264824567b2fce16c399c64aaaf
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Sun Dec 14 21:55:28 2008 +0000
 
-    	* src/placement.c, src/placement.h, src/client.c, src/client.h:
-    	  Fix fill horizontally and vertically not working as expected
-    	  (Bug #4712)
+            * src/placement.c, src/placement.h, src/client.c, src/client.h:
+              Fix fill horizontally and vertically not working as expected
+              (Bug #4712)
     
     (Old svn revision: 29025)
 
@@ -12160,9 +12309,9 @@ commit 75a0fa822654d65fd6c9e009a47835a1c8ea4b25
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Sun Dec 14 12:29:48 2008 +0000
 
-    	* settings-dialogs/xfwm4-dialog.glade,
-    	  settings-dialogs/xfwm4-tweaks-dialog.glade: String review by
-    	  Josh Saddler <nightmorph@gentoo.org> (Bug #4703)
+            * settings-dialogs/xfwm4-dialog.glade,
+              settings-dialogs/xfwm4-tweaks-dialog.glade: String review by
+              Josh Saddler <nightmorph@gentoo.org> (Bug #4703)
     
     (Old svn revision: 29024)
 
@@ -12179,8 +12328,8 @@ commit 20adacb418596190692c5b9e653dfb7737b464bb
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Fri Dec 12 23:58:50 2008 +0000
 
-    	* src/client.c: Remove maximization if a client updates its size max
-    	  size hint (Bug #4706)
+            * src/client.c: Remove maximization if a client updates its size max
+              size hint (Bug #4706)
     
     (Old svn revision: 29015)
 
@@ -12188,7 +12337,7 @@ commit f3d9476555b36dc5efb94120db2b0d52a1726685
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Thu Dec 11 12:23:13 2008 +0000
 
-    	* settings-dialogs/monitor-icon.svg, settings-dialogs/monitor-icon.png,
+            * settings-dialogs/monitor-icon.svg, settings-dialogs/monitor-icon.png,
     
     (Old svn revision: 29010)
 
@@ -12196,10 +12345,10 @@ commit 423d5a9f16dbcb148275d6a84aa796fed9acb192
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Wed Dec 10 22:18:14 2008 +0000
 
-    	* settings-dialogs/monitor-icon.svg, settings-dialogs/monitor-icon.png,
-    	  src/default_icon.svg, src/default_icon.png: Redo the icons from
-    	  scratch so we it's not a derivative work from the Tango icons anymore
-    	  (and thus remove the CCPL).
+            * settings-dialogs/monitor-icon.svg, settings-dialogs/monitor-icon.png,
+              src/default_icon.svg, src/default_icon.png: Redo the icons from
+              scratch so we it's not a derivative work from the Tango icons anymore
+              (and thus remove the CCPL).
     
     (Old svn revision: 29005)
 
@@ -12207,11 +12356,11 @@ commit 82af16dde84ee960cdc096adf89b5925b92dc986
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Sat Dec 6 11:32:42 2008 +0000
 
-    	* settings-dialogs/monitor-icon.svg, settings-dialogs/monitor-icon.png,
-    	  settings-dialogs/monitor-icon.h: Replace monitor icon with an icon
-    	  based on the Tango icon theme (Bug #4666),
-    	  COPYING: Add the CCPL as some icons are derived work from the
-    	  Tango icons.
+            * settings-dialogs/monitor-icon.svg, settings-dialogs/monitor-icon.png,
+              settings-dialogs/monitor-icon.h: Replace monitor icon with an icon
+              based on the Tango icon theme (Bug #4666),
+              COPYING: Add the CCPL as some icons are derived work from the
+              Tango icons.
     
     (Old svn revision: 28983)
 
@@ -12251,8 +12400,8 @@ commit 6b7acde97160a093bd38bd769bcd10f43d49fc31
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Sat Nov 29 18:17:11 2008 +0000
 
-    	* src/placement.c: Fix smart placement not working for windows with
-    	  height or width larger than actual screen size (Bug# 3126).
+            * src/placement.c: Fix smart placement not working for windows with
+              height or width larger than actual screen size (Bug# 3126).
     
     (Old svn revision: 28950)
 
@@ -12260,8 +12409,8 @@ commit 527fdc38db5e6839b65498a2bf738ea6fce040db
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Thu Nov 27 14:54:19 2008 +0000
 
-    	* src/transients.c: Based on previous change, we an now optimize
-    	  clientGetModalFor() and make it a lot simpler and more efficient.
+            * src/transients.c: Based on previous change, we an now optimize
+              clientGetModalFor() and make it a lot simpler and more efficient.
     
     (Old svn revision: 28926)
 
@@ -12269,8 +12418,8 @@ commit bc4704e98318d0b74454abfedea5b35c9a08a28e
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Thu Nov 27 13:41:33 2008 +0000
 
-    	* src/transients.c: Do not consider all windows of the same group for
-    	  modality (See comment in Bug #3586)
+            * src/transients.c: Do not consider all windows of the same group for
+              modality (See comment in Bug #3586)
     
     (Old svn revision: 28925)
 
@@ -12278,11 +12427,11 @@ commit 207af0310943c5518deddbedbd63011abb17b681
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Thu Nov 27 13:27:18 2008 +0000
 
-    	* src/focus.c, src/focus.h: Only focus the fallback window when
-    	  transitioning focus from a destroy or unmap (Should fix Bug #4652)
-    	  Do some small cleanup, remove older code ifdef'ed.
-    	* src/moveresize.c: Work around a problem affecting the use of
-    	  to check the value for each iteration.
+            * src/focus.c, src/focus.h: Only focus the fallback window when
+              transitioning focus from a destroy or unmap (Should fix Bug #4652)
+              Do some small cleanup, remove older code ifdef'ed.
+            * src/moveresize.c: Work around a problem affecting the use of
+              to check the value for each iteration.
     
     (Old svn revision: 28924)
 
@@ -12307,7 +12456,7 @@ commit a99a674ddb8e7fdfa0bce8b06c203ec119f07d35
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Tue Nov 25 19:33:43 2008 +0000
 
-    	* themes/daloa: Enlarge active zone of buttons
+            * themes/daloa: Enlarge active zone of buttons
     
     (Old svn revision: 28910)
 
@@ -12331,7 +12480,7 @@ commit 44c28a763b29f5cfbdb2799837df6b2dde40cf2d
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Thu Nov 20 18:28:11 2008 +0000
 
-    	* defaults/defaults: Fix default value for easy_click
+            * defaults/defaults: Fix default value for easy_click
     
     
     (Old svn revision: 28869)
@@ -12340,8 +12489,8 @@ commit 8d7536870997b23310bffde6ac2fc486e6802f47
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Thu Nov 20 18:12:51 2008 +0000
 
-    	* src/moveresize.c: Work arround a problem affecting the use of
-    	  the "Super" key as modifier for moving windows (Bug #4632)
+            * src/moveresize.c: Work arround a problem affecting the use of
+              the "Super" key as modifier for moving windows (Bug #4632)
     
     
     (Old svn revision: 28868)
@@ -12358,7 +12507,7 @@ commit e855696e930893be4a224285daf492661aeef16f
 Author: Jannis Pohlmann <jannis@xfce.org>
 Date:   Wed Nov 19 20:26:44 2008 +0000
 
-    	* de.po: Update German translations.
+            * de.po: Update German translations.
     
     (Old svn revision: 28861)
 
@@ -12366,8 +12515,8 @@ commit ee58c4b8472420a6fd8f236e2acb69c769e40519
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Wed Nov 19 06:37:49 2008 +0000
 
-    	* settings-dialogs/workspace-settings.c: Trivial optimization, no need
-    	  to check the value for eatch iteration.
+            * settings-dialogs/workspace-settings.c: Trivial optimization, no need
+              to check the value for eatch iteration.
     
     
     (Old svn revision: 28852)
@@ -12384,8 +12533,8 @@ commit ccdb55b54686779521d4b844d2e5437a5aa3d428
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Tue Nov 18 22:44:01 2008 +0000
 
-    	* settings-dialogs/workspace-settings.c: Make sure the data retrieved
-    	  from xfconf is not null (Bug #4616)
+            * settings-dialogs/workspace-settings.c: Make sure the data retrieved
+              from xfconf is not null (Bug #4616)
     
     
     (Old svn revision: 28849)
@@ -12410,8 +12559,8 @@ commit 057502c6801053cb82e9a42ef96ce33cfaac58b4
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Sat Nov 15 19:27:55 2008 +0000
 
-    	* settings-dialogs/xfwm4-workspace-dialog.glade: Set page-size
-    	  to 0 for gtk+ 2.14
+            * settings-dialogs/xfwm4-workspace-dialog.glade: Set page-size
+              to 0 for gtk+ 2.14
     
     
     (Old svn revision: 28814)
@@ -12429,7 +12578,7 @@ commit 727e6db8a787f0878481a99f785ce5d2225e60ce
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Tue Nov 11 20:32:01 2008 +0000
 
-    	* po/*.po, po/xfwm4.pot: update po
+            * po/*.po, po/xfwm4.pot: update po
     
     
     (Old svn revision: 28761)
@@ -12438,7 +12587,7 @@ commit 43a117e773a2099f102c35a67f1fb24c2e8319fb
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Tue Nov 11 18:53:57 2008 +0000
 
-    	* settings-dialogs/xfwm4-settings.c: Fix focus model selection
+            * settings-dialogs/xfwm4-settings.c: Fix focus model selection
     
     (Old svn revision: 28760)
 
@@ -12446,8 +12595,8 @@ commit 84da6ddbe63852bd6b038da0873c437b3a9f9300
 Author: Jannis Pohlmann <jannis@xfce.org>
 Date:   Tue Nov 11 18:18:01 2008 +0000
 
-    	* src/settings.c: Place the sidewalks again after wrap_workspaces has
-    	  changed.
+            * src/settings.c: Place the sidewalks again after wrap_workspaces has
+              changed.
     
     (Old svn revision: 28758)
 
@@ -12455,7 +12604,7 @@ commit 687fabf0da117c0f4d2fbe16560f5ac469ab4107
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Tue Nov 11 14:57:04 2008 +0000
 
-    	* src/Makefile.am: add missing inline icons
+            * src/Makefile.am: add missing inline icons
     
     (Old svn revision: 28757)
 
@@ -12463,7 +12612,7 @@ commit e33407fb8646860d71225066179767eb395b4c9b
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Tue Nov 11 14:43:12 2008 +0000
 
-    	* settings-dialogs/xfwm4-settings.c: Fix build with -Werror.
+            * settings-dialogs/xfwm4-settings.c: Fix build with -Werror.
     
     (Old svn revision: 28755)
 
@@ -12471,8 +12620,8 @@ commit 7a89f2c971f6235c05a8f0c36d0a2f4e5f87f519
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Tue Nov 11 14:25:43 2008 +0000
 
-    	* settings-dialogs/workspace-settings.c: Use editable cells instead of
-    	  yet another popup dialog.
+            * settings-dialogs/workspace-settings.c: Use editable cells instead of
+              yet another popup dialog.
     
     (Old svn revision: 28747)
 
@@ -12480,7 +12629,7 @@ commit cc06cf3c985af0daa82fcaa829feffae840e5fc4
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Tue Nov 11 13:51:32 2008 +0000
 
-    	* settings-dialogs/workspace-settings.c: Revert
+            * settings-dialogs/workspace-settings.c: Revert
     
     (Old svn revision: 28740)
 
@@ -12488,7 +12637,7 @@ commit 66ecc7262d1dc6645706d9a978ae998b5a64e923
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Tue Nov 11 13:49:45 2008 +0000
 
-    	* src/Makefile.am: stock_rolldown.png missing in Makefile.am
+            * src/Makefile.am: stock_rolldown.png missing in Makefile.am
     
     (Old svn revision: 28739)
 
@@ -12534,7 +12683,7 @@ commit 64a01891d6129dd1a34233e6e76dd18095b8c3a9
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Sun Nov 9 16:36:28 2008 +0000
 
-    	* po/POTFILES.in, settings-dialogs/Makefile.am: Fix make distcheck
+            * po/POTFILES.in, settings-dialogs/Makefile.am: Fix make distcheck
     
     (Old svn revision: 28689)
 
@@ -12550,8 +12699,8 @@ commit 7b0d62563d17332316b5f71469db2b3c65848b96
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Sun Nov 9 16:03:57 2008 +0000
 
-    	* configure.ac.in: Update version
-    	  po/*: Update po
+            * configure.ac.in: Update version
+              po/*: Update po
     
     (Old svn revision: 28687)
 
@@ -12559,8 +12708,8 @@ commit 2f935a2f79867e58b45930e3ab8c9519b69dec2d
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Sun Nov 9 15:34:51 2008 +0000
 
-    	* settings-dialogs/workspace-settings.c: Fix compiler warning
-    	  src/cycle.c: Add key shortcut for reverse cycling (Bug #2778)
+            * settings-dialogs/workspace-settings.c: Fix compiler warning
+              src/cycle.c: Add key shortcut for reverse cycling (Bug #2778)
     
     (Old svn revision: 28686)
 
@@ -12568,9 +12717,9 @@ commit 9b83e2d139ed63f9f3020d20f058cf92efef5ef9
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Sun Nov 9 11:46:07 2008 +0000
 
-    	* settings-dialogs/xfwm4-settings.c, src/cycle.c, src/settings.c,
-    	  src/events.c, src/settings.h, src/screen.c, src/screen.h:
-    	  Prepare code for reverse cycling (not finished yet).
+            * settings-dialogs/xfwm4-settings.c, src/cycle.c, src/settings.c,
+              src/events.c, src/settings.h, src/screen.c, src/screen.h:
+              Prepare code for reverse cycling (not finished yet).
     
     (Old svn revision: 28680)
 
@@ -12586,8 +12735,8 @@ commit c451b834ae2746692e065b82db526966f639f4df
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Sat Nov 8 20:20:40 2008 +0000
 
-    	* src/tabwin.c: Draw focus in tabwin to make sure the selection is
-    	  visible even with themes that do not show selected items.
+            * src/tabwin.c: Draw focus in tabwin to make sure the selection is
+              visible even with themes that do not show selected items.
     
     (Old svn revision: 28671)
 
@@ -12595,8 +12744,8 @@ commit 94180dca95b05af637316ddd615c961b0dd717c8
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Sat Nov 8 17:28:50 2008 +0000
 
-    	* src/settings.c: Do not display warnings for "workspace_names", for
-    	  real this time...
+            * src/settings.c: Do not display warnings for "workspace_names", for
+              real this time...
     
     (Old svn revision: 28669)
 
@@ -12604,8 +12753,8 @@ commit b2a0a67f27cbaf54fcd32be8e5a97c4f3bd02dda
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Sat Nov 8 17:19:10 2008 +0000
 
-    	* settings-dialogs/workspace-settings.c: Fix workspaces names not being
-    	  set in the workspace settings GUI.
+            * settings-dialogs/workspace-settings.c: Fix workspaces names not being
+              set in the workspace settings GUI.
     
     (Old svn revision: 28668)
 
@@ -12621,9 +12770,9 @@ commit a48a332d69ee21b40542a60dc1adad89a891926a
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Sat Nov 8 16:48:10 2008 +0000
 
-    	* src/settings.c: Do not display warnings for "workspace_names" either.
-    	* settings-dialogs/xfwm4-settings.c: Fix possible crash when the
-    	  dbl_click_action setting gets unset.
+            * src/settings.c: Do not display warnings for "workspace_names" either.
+            * settings-dialogs/xfwm4-settings.c: Fix possible crash when the
+              dbl_click_action setting gets unset.
     
     (Old svn revision: 28666)
 
@@ -12665,8 +12814,8 @@ commit c2c402369f0e93d0bf67ea538c36210ee1d2a731
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Sun Nov 2 18:14:44 2008 +0000
 
-    	* src/parserc.c, src/settings.c: Do not display warnings for values
-    	  that are not configurable via xfconf (typically theme settings).
+            * src/parserc.c, src/settings.c: Do not display warnings for values
+              that are not configurable via xfconf (typically theme settings).
     
     
     (Old svn revision: 28587)
@@ -12675,8 +12824,8 @@ commit 67e59c31ba43490c1d7f180d763710b3cc7de3c1
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Sun Nov 2 17:48:43 2008 +0000
 
-    	* settings-dialogs/tweaks-settings.c, src/settings.c, src/client.c: Fix
-    	  indentation.
+            * settings-dialogs/tweaks-settings.c, src/settings.c, src/client.c: Fix
+              indentation.
     
     
     (Old svn revision: 28586)
@@ -12685,10 +12834,10 @@ commit b85476db5d6b4766c5a1801680e035e751151937
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Sun Nov 2 17:45:46 2008 +0000
 
-    	* settings-dialogs/xfwm4-tweaks-dialog.glade,
-    	  settings-dialogs/tweaks-settings.c, src/settings.c, src/settings.h,
-    	  src/client.c, src/client.h, defaults/defaults: Add new option do
-    	  disable blinking of urgent windows.
+            * settings-dialogs/xfwm4-tweaks-dialog.glade,
+              settings-dialogs/tweaks-settings.c, src/settings.c, src/settings.h,
+              src/client.c, src/client.h, defaults/defaults: Add new option do
+              disable blinking of urgent windows.
     
     
     (Old svn revision: 28585)
@@ -12713,27 +12862,27 @@ commit d14cb036e95fe4cf2b1b4dd29ce42b22fd88ce5f
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Fri Oct 31 21:20:19 2008 +0000
 
-    	* settings-dialogs/xfwm4-settings.c: Fix compiler warnings
-    	  xfwm4/trunk/settings-dialogs/Makefile.am
-    	  xfwm4/trunk/settings-dialogs/tweaks-settings.c
-    	  xfwm4/trunk/settings-dialogs/workspace-settings.c
-    	  xfwm4/trunk/settings-dialogs/xfwm4-settings.c
-    	  xfwm4/trunk/src/Makefile.am
-    	  xfwm4/trunk/src/event_filter.c
-    	  xfwm4/trunk/src/events.c
-    	  xfwm4/trunk/src/keyboard.c
-    	  xfwm4/trunk/src/keyboard.h
-    	  xfwm4/trunk/src/screen.h
-    	  xfwm4/trunk/src/settings.c
-    	  xfwm4/trunk/themes/Makefile.am
-    	  xfwm4/trunk/configure.ac.in
-    	  xfwm4/trunk/defaults/defaults: Add support for keyboard shortcuts.
-    	  Remove experimental shortcuts code and add dependency on
-    	  libxfce4kbd-private instead and replace MappingNotify event handler
-    	  with a GdkKeymap "keys-changed" callback.
-    	  Remove support for key themes. Properly stop startup notification
-    	  when dialogs are plugged into xfce4-settings-manager (Bug #4492).
-    	  po/*: Update translation files.
+            * settings-dialogs/xfwm4-settings.c: Fix compiler warnings
+              xfwm4/trunk/settings-dialogs/Makefile.am
+              xfwm4/trunk/settings-dialogs/tweaks-settings.c
+              xfwm4/trunk/settings-dialogs/workspace-settings.c
+              xfwm4/trunk/settings-dialogs/xfwm4-settings.c
+              xfwm4/trunk/src/Makefile.am
+              xfwm4/trunk/src/event_filter.c
+              xfwm4/trunk/src/events.c
+              xfwm4/trunk/src/keyboard.c
+              xfwm4/trunk/src/keyboard.h
+              xfwm4/trunk/src/screen.h
+              xfwm4/trunk/src/settings.c
+              xfwm4/trunk/themes/Makefile.am
+              xfwm4/trunk/configure.ac.in
+              xfwm4/trunk/defaults/defaults: Add support for keyboard shortcuts.
+              Remove experimental shortcuts code and add dependency on
+              libxfce4kbd-private instead and replace MappingNotify event handler
+              with a GdkKeymap "keys-changed" callback.
+              Remove support for key themes. Properly stop startup notification
+              when dialogs are plugged into xfce4-settings-manager (Bug #4492).
+              po/*: Update translation files.
     
     (Old svn revision: 28542)
 
@@ -12773,8 +12922,8 @@ commit ed576fe1e533ea6b04ebd0be9f65f8ee075bbcfe
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Thu Oct 30 22:39:04 2008 +0000
 
-    	* settings-dialogs/xfwm4-settings.c, src/client.c: Fix compiler
-    	  warnings
+            * settings-dialogs/xfwm4-settings.c, src/client.c: Fix compiler
+              warnings
     
     (Old svn revision: 28524)
 
@@ -12782,8 +12931,8 @@ commit 6d596a997994625f0e6b5a8431b0d7b9e38e33c8
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Thu Oct 30 22:15:25 2008 +0000
 
-    	* src/events.c, src/client.c, src/client.h,
-    	  themes/default.keys/keythemerc: Simplify management of transients
+            * src/events.c, src/client.c, src/client.h,
+              themes/default.keys/keythemerc: Simplify management of transients
     
     (Old svn revision: 28522)
 
@@ -12791,8 +12940,8 @@ commit e872d5a0c75b62bd167f31dcfe5b7f6566ac2c2c
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Thu Oct 30 18:10:24 2008 +0000
 
-    	* src/default_icon.svg, src/default_icon.svg,
-    	  src/inline-default-icon.h: Change default icon.
+            * src/default_icon.svg, src/default_icon.svg,
+              src/inline-default-icon.h: Change default icon.
     
     (Old svn revision: 28519)
 
@@ -12800,8 +12949,8 @@ commit 50d50d901ec371573f3840572cec57a4747e9017
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Thu Oct 30 17:49:12 2008 +0000
 
-    	* src/client.c: Fix minimize all other windows,
-    	  src/main.c: Fix compilation warning.
+            * src/client.c: Fix minimize all other windows,
+              src/main.c: Fix compilation warning.
     
     (Old svn revision: 28517)
 
@@ -12826,12 +12975,12 @@ commit b64a0c75390a86ed71dc957df7b71d12100c137c
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Wed Oct 29 23:10:25 2008 +0000
 
-    	* src/inline-stock-rolldown.h, src/inline-stock-maximize.h,
-    	  src/inline-stock-unmaximize.h, src/menu.c,  src/stock_icons.c,
-    	  src/stock_icons.h, src/inline-stock-minimize.h,
-    	  src/inline-default-icon.h, src/inline-stock-rollup.h,
-    	  src/main.c, src/Makefile.am: Rework the window menu to improve
-    	  consistency with libwnck menu (Bug #4531)
+            * src/inline-stock-rolldown.h, src/inline-stock-maximize.h,
+              src/inline-stock-unmaximize.h, src/menu.c,  src/stock_icons.c,
+              src/stock_icons.h, src/inline-stock-minimize.h,
+              src/inline-default-icon.h, src/inline-stock-rollup.h,
+              src/main.c, src/Makefile.am: Rework the window menu to improve
+              consistency with libwnck menu (Bug #4531)
     
     (Old svn revision: 28506)
 
@@ -12847,9 +12996,9 @@ commit a485180987cc03b6bafe325e98a24e7f4d90092d
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Tue Oct 28 12:36:28 2008 +0000
 
-    	* settings-dialogs/tweaks-settings.c,
-    	  settings-dialogs/xfwm4-tweaks-dialog.glade: Fix wmteaks dialog not
-    	  setting the proper option for "raise_with_any_button".
+            * settings-dialogs/tweaks-settings.c,
+              settings-dialogs/xfwm4-tweaks-dialog.glade: Fix wmteaks dialog not
+              setting the proper option for "raise_with_any_button".
     
     (Old svn revision: 28484)
 
@@ -12891,12 +13040,12 @@ commit 0d8b85cff2012341b1b7c93b8f059497b0c132c5
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Wed Oct 22 20:10:00 2008 +0000
 
-    	* src/client.c, src/client.h, src/display.c, src/display.h,
-    	  src/events.c, src/focus.c, src/focus.h, src/hints.c, src/hints.h,
-    	  src/misc.c, src/misc.h, src/moveresize.c, src/netwm.c, src/netwm.h,
-    	  src/screen.c, src/screen.h, src/startup_notification.c,
-    	  src/workspaces.c, src/workspaces.h: Use "guint32" instead of Xlib's
-    	  "Time".
+            * src/client.c, src/client.h, src/display.c, src/display.h,
+              src/events.c, src/focus.c, src/focus.h, src/hints.c, src/hints.h,
+              src/misc.c, src/misc.h, src/moveresize.c, src/netwm.c, src/netwm.h,
+              src/screen.c, src/screen.h, src/startup_notification.c,
+              src/workspaces.c, src/workspaces.h: Use "guint32" instead of Xlib's
+              "Time".
     
     (Old svn revision: 28365)
 
@@ -12952,7 +13101,7 @@ commit 67b5b71e220a2002555cba1923f842b0fd53ba20
 Author: Lars Nielsen <lars@mit-web.dk>
 Date:   Mon Oct 20 21:02:01 2008 +0000
 
-    	* da.po: Danish translation update
+            * da.po: Danish translation update
     
     (Old svn revision: 28339)
 
@@ -13078,12 +13227,12 @@ commit 12d2f96514548a8342b082aba2ed7621b62588b3
 Author: Olivier Fourdan <fourdan.olivier@wanadoo.fr>
 Date:   Tue Oct 14 08:04:11 2008 +0000
 
-    	* settings-dialogs/Makefile.am: Include monitor-icon.h,
-    	  (corsac@debian.org), src/events.c: Fix compiler warning,
-    	  src/placement.c: Likewise, src/client.c: Likewise, fix
-    	  uninitialized access in full debug build (corsac@debian.org),
-    	  po/POTFILES.in: Add new source to the list of files to translate
-    	  (corsac@debian.org)
+            * settings-dialogs/Makefile.am: Include monitor-icon.h,
+              (corsac@debian.org), src/events.c: Fix compiler warning,
+              src/placement.c: Likewise, src/client.c: Likewise, fix
+              uninitialized access in full debug build (corsac@debian.org),
+              po/POTFILES.in: Add new source to the list of files to translate
+              (corsac@debian.org)
     
     
     
@@ -13511,8 +13660,8 @@ commit d934013e03cacaba539e6ae4d49e1b25a36c3356
 Author: Jannis Pohlmann <jannis@xfce.org>
 Date:   Sun Sep 14 21:15:10 2008 +0000
 
-    	* settings-dialogs/*.desktop.in: Add X-XfcePluggable=true to desktop
-    	  files of the settings dialogs.
+            * settings-dialogs/*.desktop.in: Add X-XfcePluggable=true to desktop
+              files of the settings dialogs.
     
     (Old svn revision: 27878)
 
@@ -13528,7 +13677,7 @@ commit 81f8d7f8a49c0f42a6ad5570708163f92b679b22
 Author: Jannis Pohlmann <jannis@xfce.org>
 Date:   Sun Sep 14 20:19:05 2008 +0000
 
-    	* settings-dialogs/tweaks-settings.c: Add copyright nothint.
+            * settings-dialogs/tweaks-settings.c: Add copyright nothint.
     
     (Old svn revision: 27873)
 
@@ -13536,8 +13685,8 @@ commit 76a410089af5eb4f250e8761f07f6961d455caac
 Author: Jannis Pohlmann <jannis@xfce.org>
 Date:   Sun Sep 14 20:14:56 2008 +0000
 
-    	* settings-dialogs/*.{c,glade}: Add embedding support to all xfwm4 settings
-    	  dialogs.
+            * settings-dialogs/*.{c,glade}: Add embedding support to all xfwm4 settings
+              dialogs.
     
     (Old svn revision: 27872)
 
@@ -13667,13 +13816,13 @@ commit 133a94ccd0016bea9b856c480d431572bf62ef35
 Author: Jannis Pohlmann <jannis@xfce.org>
 Date:   Mon Sep 8 20:24:18 2008 +0000
 
-    	* settings-dialogs/frap-shortcuts.c,
-    	  settings-dialog/frap-shortcuts-dialog.c: Synchronize latest libfrap
-    	  changes.
-    	* settings-dialogs/xfwm4-settings.c: Make keyboard tab insensitive.
-    	  Shortcuts based on xfconf have been postponed to the first beta release
-    		and won't be available in the alpha.
-     	* *.po, xfwm4.pot: Merge strings.
+            * settings-dialogs/frap-shortcuts.c,
+              settings-dialog/frap-shortcuts-dialog.c: Synchronize latest libfrap
+              changes.
+            * settings-dialogs/xfwm4-settings.c: Make keyboard tab insensitive.
+              Shortcuts based on xfconf have been postponed to the first beta release
+                    and won't be available in the alpha.
+            * *.po, xfwm4.pot: Merge strings.
     
     (Old svn revision: 27762)
 
@@ -13681,9 +13830,9 @@ commit 24cebb444a1fd2d3d8a7a7df9bd4cf53a7d44346
 Author: Jannis Pohlmann <jannis@xfce.org>
 Date:   Sun Sep 7 21:59:05 2008 +0000
 
-    	* settings-dialogs/frap-shortcuts-dialog.c: Update the dialog. It
-    	  now uses XfceTitledDialog as a parent and also displays the partial
-    	  shortcut while being entered - cool.
+            * settings-dialogs/frap-shortcuts-dialog.c: Update the dialog. It
+              now uses XfceTitledDialog as a parent and also displays the partial
+              shortcut while being entered - cool.
     
     (Old svn revision: 27740)
 
@@ -13691,9 +13840,9 @@ commit 0ed4cbfb2271f2df475a6bf05f5011abeb32b833
 Author: Jannis Pohlmann <jannis@xfce.org>
 Date:   Sun Sep 7 21:20:37 2008 +0000
 
-    	* settings-dialogs/frap-shortcuts.{c,h},
-    	  settings-dialogs/frap-shortcuts-dialog.c: Update to latest libfrap
-    	  version.
+            * settings-dialogs/frap-shortcuts.{c,h},
+              settings-dialogs/frap-shortcuts-dialog.c: Update to latest libfrap
+              version.
     
     (Old svn revision: 27738)
 
@@ -13701,12 +13850,12 @@ commit d205f4c31416c5c1b003010ce07325bab4207af2
 Author: Jannis Pohlmann <jannis@xfce.org>
 Date:   Sun Sep 7 17:04:19 2008 +0000
 
-    	  settings-dialogs/xfwm4-settings.c: Import utility functions and the
-    	  shortcut dialog from libfrap. Refactor the xfwm4 settings dialog so that
-    	  it makes use of them. The code should now work better and be easier to
-    	  read.
-     	* POTFILES.in: Add frap-shortcuts.c and frap-shortcuts-dialog.c.
-    	* *.po, xfwm4.pot: Merge new strings.
+              settings-dialogs/xfwm4-settings.c: Import utility functions and the
+              shortcut dialog from libfrap. Refactor the xfwm4 settings dialog so that
+              it makes use of them. The code should now work better and be easier to
+              read.
+            * POTFILES.in: Add frap-shortcuts.c and frap-shortcuts-dialog.c.
+            * *.po, xfwm4.pot: Merge new strings.
     
     (Old svn revision: 27728)
 
@@ -13714,12 +13863,12 @@ commit dbe04dbb8c7ecaabeb157ca7285549a750ab64ca
 Author: Jannis Pohlmann <jannis@xfce.org>
 Date:   Sun Sep 7 17:02:19 2008 +0000
 
-    	* settings-dialogs/Makefile.am, settings-dialogs/frap-shortcuts.{c,h},
-    	  settings-dialogs/frap-shortcuts-dialog.{c,h},
-    		settings-dialogs/xfwm4-settings.c: Import utility functions and the
-    		shortcut dialog from libfrap. Refactor the xfwm4 settings dialog so that
-    		it makes use of them. The code should now work better and be easier to
-    		read.
+            * settings-dialogs/Makefile.am, settings-dialogs/frap-shortcuts.{c,h},
+              settings-dialogs/frap-shortcuts-dialog.{c,h},
+                    settings-dialogs/xfwm4-settings.c: Import utility functions and the
+                    shortcut dialog from libfrap. Refactor the xfwm4 settings dialog so that
+                    it makes use of them. The code should now work better and be easier to
+                    read.
     
     (Old svn revision: 27727)
 
@@ -13727,7 +13876,7 @@ commit 4e283704c1ea79b90fbf4a72ec3ec2242637f3e8
 Author: Jannis Pohlmann <jannis@xfce.org>
 Date:   Sun Sep 7 09:50:59 2008 +0000
 
-    	* settings-dialogs/shortcut-dialog.c: Remove unused Display variable.
+            * settings-dialogs/shortcut-dialog.c: Remove unused Display variable.
     
     (Old svn revision: 27720)
 
@@ -13735,7 +13884,7 @@ commit 52de6e6936e86d54ce00e60702190bd0ccde861f
 Author: Jannis Pohlmann <jannis@xfce.org>
 Date:   Sun Sep 7 09:35:50 2008 +0000
 
-    	* settings-dialogs/Xfwm4-settings.c: Remove unused function declaration.
+            * settings-dialogs/Xfwm4-settings.c: Remove unused function declaration.
     
     (Old svn revision: 27719)
 
@@ -13751,8 +13900,8 @@ commit 314b88fd7e7b015b1917099cc038ec375eb2dbdc
 Author: Jannis Pohlmann <jannis@xfce.org>
 Date:   Sat Sep 6 18:22:59 2008 +0000
 
-    	* configure.ac.in: Add dependencies on dbus-1 and dbus-glib-1.
-    	* settings-dialogs/xfwm4-settings.c: Add <dbus/dbus-glib.h> include. \n
+            * configure.ac.in: Add dependencies on dbus-1 and dbus-glib-1.
+            * settings-dialogs/xfwm4-settings.c: Add <dbus/dbus-glib.h> include. \n
     
     (Old svn revision: 27694)
 
@@ -13760,16 +13909,16 @@ commit 8f68236b8e120acd5524e232d6cb287528a28199
 Author: Jannis Pohlmann <jannis@xfce.org>
 Date:   Sat Sep 6 14:47:22 2008 +0000
 
-    	* settings-dialogs/Makefile.am,
-    	  settings-dialogs/shortcut-dialog.{c,h}: Add (almost) the same dialog for
-    	  entering shortcuts as we have in xfce4-settings.
-    	* settings-dialogs/xfwm4-settings.c: Implement the first part of the xfwm4
-    	  keyboard shortcuts: Disable themes support, make shortcuts editable,
-    	  implement the "reset to defaults" feature, handle 'property-changed'
-    	  signal emitted by xfconf and allow for interactive resolving of
-    	  conflicts. Still missing: hard-coded default shorcuts and the actual X
-    	  event monitor for all shortcuts. \n 	* POTFILES.in: Add shortcut-dialog.c.
-    	* *.po, xfwm4.pot: Merge new strings.
+            * settings-dialogs/Makefile.am,
+              settings-dialogs/shortcut-dialog.{c,h}: Add (almost) the same dialog for
+              entering shortcuts as we have in xfce4-settings.
+            * settings-dialogs/xfwm4-settings.c: Implement the first part of the xfwm4
+              keyboard shortcuts: Disable themes support, make shortcuts editable,
+              implement the "reset to defaults" feature, handle 'property-changed'
+              signal emitted by xfconf and allow for interactive resolving of
+              conflicts. Still missing: hard-coded default shorcuts and the actual X
+              event monitor for all shortcuts. \n   * POTFILES.in: Add shortcut-dialog.c.
+            * *.po, xfwm4.pot: Merge new strings.
     
     (Old svn revision: 27692)
 
@@ -13777,7 +13926,7 @@ commit ca6cc391e978b4a05b85706b1c637ccfd31f2aa1
 Author: Jannis Pohlmann <jannis@xfce.org>
 Date:   Thu Sep 4 17:25:46 2008 +0000
 
-    	* autogen.sh: Add git svn revision versioning support.
+            * autogen.sh: Add git svn revision versioning support.
     
     (Old svn revision: 27654)
 
@@ -14970,8 +15119,8 @@ commit 74c41e230a67540b69fdb4cf9e28460a677b8115
 Author: Mike Massonnet <mmassonnet@xfce.org>
 Date:   Sat Oct 6 17:00:21 2007 +0000
 
-    	* libexo, libxfce4util, xfcalendar, xfce4-panel, xfce4-session, xfce-mcs-plugins,
-    	  xfdesktop, xfprint, xfwm4: Add Latvian translation.
+            * libexo, libxfce4util, xfcalendar, xfce4-panel, xfce4-session, xfce-mcs-plugins,
+              xfdesktop, xfprint, xfwm4: Add Latvian translation.
     
     
     (Old svn revision: 26127)
@@ -15045,7 +15194,7 @@ Date:   Sun Sep 9 21:09:54 2007 +0000
 
     2007-09-10  Alexander Nyakhaychyk  <nyakhaychyk@gmail.com>
     
-    	* be.po: Updated Belarusian translation
+            * be.po: Updated Belarusian translation
     
     
     
@@ -15216,7 +15365,7 @@ Date:   Wed Jul 4 06:29:07 2007 +0000
 
     Maxim Dziumanenko <dziumanenko@gmail.com>
     
-    	* Update Ukrainian translation by Dmitry Nikitin
+            * Update Ukrainian translation by Dmitry Nikitin
     
     
     
@@ -15727,7 +15876,7 @@ Date:   Fri Apr 13 13:35:05 2007 +0000
 
     2007-04-13 Maxim Dziumanenko <dziumanenko@gmail.com>
     
-    	* Update Ukrainian translation by Dmitry Nikitin.
+            * Update Ukrainian translation by Dmitry Nikitin.
     
     
     (Old svn revision: 25535)
@@ -16069,7 +16218,7 @@ Date:   Sat Mar 3 09:42:37 2007 +0000
 
     2007-03-01 Maxim Dziumanenko <dziumanenko@gmail.com>
     
-    	* Update Ukrainian translation.
+            * Update Ukrainian translation.
     
     
     
@@ -16295,7 +16444,7 @@ Date:   Sat Jan 20 03:24:44 2007 +0000
 
     2007-01-20  Alexander Nyakhaychyk  <nyakhaychyk@gmail.com>
     
-    	* be.po: Updated Belarusian Translation
+            * be.po: Updated Belarusian Translation
     
     
     
@@ -16347,7 +16496,7 @@ Date:   Fri Jan 19 01:13:10 2007 +0000
 
     2007-01-19  Alexander Nyakhaychyk  <nyakhaychyk@gmail.com>
     
-    	* be.po: Updated Belarusian Translation
+            * be.po: Updated Belarusian Translation
     
     
     
@@ -18029,8 +18178,8 @@ Date:   Sat Sep 2 12:22:41 2006 +0000
 
     2006-09-02  Benedikt Meurer <benny@xfce.org>
     
-    	* cs.po: Updated Czech translations by  Michal Varady
-    	  <miko.vaji@gmail.com>.
+            * cs.po: Updated Czech translations by  Michal Varady
+              <miko.vaji@gmail.com>.
     
     
     
@@ -20034,7 +20183,7 @@ Date:   Tue Apr 25 16:32:45 2006 +0000
 
     2006-04-25  Maxim Dziumanenko <mvd@mylinux.ua>
     
-    	* Updated Ukrainian translation.
+            * Updated Ukrainian translation.
     
     
     
@@ -26320,9 +26469,9 @@ Author: François Le Clainche <fleclainche@wanadoo.fr>
 Date:   Sun Oct 17 12:12:11 2004 +0000
 
     Small doc update :
-    	- xdg basedir spec fix
-    	- some words about compositing manager
-    	- fix an internal broken link
+            - xdg basedir spec fix
+            - some words about compositing manager
+            - fix an internal broken link
     
     
     (Old svn revision: 12081)
@@ -31522,319 +31671,319 @@ Date:   Mon Oct 13 16:21:04 2003 +0000
     
     2003-10-11 00:08  edscott
     
-    	* xffm/src/: add_folder.c, add_node_contents.c, callbacks.c,
-    	keybindings.c, main.c, treeview.c: do second letter search if first
-    	letter is / -- DONE autohide diagnostics on click or keypress--DONE
-    	compare dates between mime file and dbh file before updating
-    	applications -- DONE scroll by keyboard debugged and enhanced
-    	--DONE g_strchug() crash on openwith by menu... --FIXED on go_up do
-    	not place in history, nor back nor forward --DONE
+            * xffm/src/: add_folder.c, add_node_contents.c, callbacks.c,
+            keybindings.c, main.c, treeview.c: do second letter search if first
+            letter is / -- DONE autohide diagnostics on click or keypress--DONE
+            compare dates between mime file and dbh file before updating
+            applications -- DONE scroll by keyboard debugged and enhanced
+            --DONE g_strchug() crash on openwith by menu... --FIXED on go_up do
+            not place in history, nor back nor forward --DONE
     
     2003-10-11 00:05  edscott
     
-    	* xffm/: libs/apps.c, libs/bookmarks.c, libs/constants.h,
-    	libs/cpy.c, libs/dnd.c, libs/dummies.c, libs/duplicate.c,
-    	libs/entry.c, libs/goto.c, libs/goto.h, libs/icons.c, libs/menu.c,
-    	libs/menu_callbacks.c, libs/misc.c, libs/misc.h, libs/monitor.c,
-    	libs/new_win.c, libs/pasteboard.c, libs/print.c, libs/refresh.c,
-    	libs/reg.c, libs/remove.c, libs/rename.c, libs/run.c, libs/run.h,
-    	libs/scramble.c, libs/symlink.c, libs/terminal.c, libs/touch.c,
-    	libs/trash.c, libs/xfdiff.c, smb/smb_download.c, smb/smb_list.c: do
-    	second letter search if first letter is / -- DONE autohide
-    	diagnostics on click or keypress--DONE compare dates between mime
-    	file and dbh file before updating applications -- DONE scroll by
-    	keyboard debugged and enhanced --DONE g_strchug() crash on openwith
-    	by menu... --FIXED on go_up do not place in history, nor back nor
-    	forward --DONE
+            * xffm/: libs/apps.c, libs/bookmarks.c, libs/constants.h,
+            libs/cpy.c, libs/dnd.c, libs/dummies.c, libs/duplicate.c,
+            libs/entry.c, libs/goto.c, libs/goto.h, libs/icons.c, libs/menu.c,
+            libs/menu_callbacks.c, libs/misc.c, libs/misc.h, libs/monitor.c,
+            libs/new_win.c, libs/pasteboard.c, libs/print.c, libs/refresh.c,
+            libs/reg.c, libs/remove.c, libs/rename.c, libs/run.c, libs/run.h,
+            libs/scramble.c, libs/symlink.c, libs/terminal.c, libs/touch.c,
+            libs/trash.c, libs/xfdiff.c, smb/smb_download.c, smb/smb_list.c: do
+            second letter search if first letter is / -- DONE autohide
+            diagnostics on click or keypress--DONE compare dates between mime
+            file and dbh file before updating applications -- DONE scroll by
+            keyboard debugged and enhanced --DONE g_strchug() crash on openwith
+            by menu... --FIXED on go_up do not place in history, nor back nor
+            forward --DONE
     
     2003-10-10 23:19  xfce
     
-    	* xfce-utils/scripts/xinitrc: Don't use cpp in xrdb so that DPI
-    	settings load even on workstations w/out cpp
+            * xfce-utils/scripts/xinitrc: Don't use cpp in xrdb so that DPI
+            settings load even on workstations w/out cpp
     
     2003-10-10 22:17  xfce
     
-    	* libxfcegui4/libxfcegui4/netk-pager.c, xfwm4/configure,
-    	xfwm4/configure.ac, xfwm4/themes/Makefile.am,
-    	xfwm4/themes/Makefile.in, xfwm4/themes/default/bottom-active.xpm,
-    	xfwm4/themes/default/bottom-inactive.xpm,
-    	xfwm4/themes/default/bottom-left-active.xpm,
-    	xfwm4/themes/default/bottom-left-inactive.xpm,
-    	xfwm4/themes/default/bottom-right-active.xpm,
-    	xfwm4/themes/default/bottom-right-inactive.xpm,
-    	xfwm4/themes/default/close-active.xpm,
-    	xfwm4/themes/default/close-inactive.xpm,
-    	xfwm4/themes/default/close-pressed.xpm,
-    	xfwm4/themes/default/hide-active.xpm,
-    	xfwm4/themes/default/hide-inactive.xpm,
-    	xfwm4/themes/default/hide-pressed.xpm,
-    	xfwm4/themes/default/left-active.xpm,
-    	xfwm4/themes/default/left-inactive.xpm,
-    	xfwm4/themes/default/maximize-active.xpm,
-    	xfwm4/themes/default/maximize-inactive.xpm,
-    	xfwm4/themes/default/maximize-pressed.xpm,
-    	xfwm4/themes/default/maximize-toggled-active.xpm,
-    	xfwm4/themes/default/maximize-toggled-inactive.xpm,
-    	xfwm4/themes/default/maximize-toggled-pressed.xpm,
-    	xfwm4/themes/default/menu-active.xpm,
-    	xfwm4/themes/default/menu-inactive.xpm,
-    	xfwm4/themes/default/menu-pressed.xpm,
-    	xfwm4/themes/default/right-active.xpm,
-    	xfwm4/themes/default/right-inactive.xpm,
-    	xfwm4/themes/default/shade-active.xpm,
-    	xfwm4/themes/default/shade-inactive.xpm,
-    	xfwm4/themes/default/shade-pressed.xpm,
-    	xfwm4/themes/default/shade-toggled-active.xpm,
-    	xfwm4/themes/default/shade-toggled-inactive.xpm,
-    	xfwm4/themes/default/shade-toggled-pressed.xpm,
-    	xfwm4/themes/default/stick-active.xpm,
-    	xfwm4/themes/default/stick-inactive.xpm,
-    	xfwm4/themes/default/stick-pressed.xpm,
-    	xfwm4/themes/default/stick-toggled-active.xpm,
-    	xfwm4/themes/default/stick-toggled-inactive.xpm,
-    	xfwm4/themes/default/stick-toggled-pressed.xpm,
-    	xfwm4/themes/default/themerc,
-    	xfwm4/themes/default/title-1-active.xpm,
-    	xfwm4/themes/default/title-1-inactive.xpm,
-    	xfwm4/themes/default/title-2-active.xpm,
-    	xfwm4/themes/default/title-2-inactive.xpm,
-    	xfwm4/themes/default/title-3-active.xpm,
-    	xfwm4/themes/default/title-3-inactive.xpm,
-    	xfwm4/themes/default/title-4-active.xpm,
-    	xfwm4/themes/default/title-4-inactive.xpm,
-    	xfwm4/themes/default/title-5-active.xpm,
-    	xfwm4/themes/default/title-5-inactive.xpm,
-    	xfwm4/themes/default/top-left-active.xpm,
-    	xfwm4/themes/default/top-left-inactive.xpm,
-    	xfwm4/themes/default/top-right-active.xpm,
-    	xfwm4/themes/default/top-right-inactive.xpm: Revert xfwm4 default
-    	theme to the one found in pre-release as it looked better Fix a
-    	very small thing in netk-pager
+            * libxfcegui4/libxfcegui4/netk-pager.c, xfwm4/configure,
+            xfwm4/configure.ac, xfwm4/themes/Makefile.am,
+            xfwm4/themes/Makefile.in, xfwm4/themes/default/bottom-active.xpm,
+            xfwm4/themes/default/bottom-inactive.xpm,
+            xfwm4/themes/default/bottom-left-active.xpm,
+            xfwm4/themes/default/bottom-left-inactive.xpm,
+            xfwm4/themes/default/bottom-right-active.xpm,
+            xfwm4/themes/default/bottom-right-inactive.xpm,
+            xfwm4/themes/default/close-active.xpm,
+            xfwm4/themes/default/close-inactive.xpm,
+            xfwm4/themes/default/close-pressed.xpm,
+            xfwm4/themes/default/hide-active.xpm,
+            xfwm4/themes/default/hide-inactive.xpm,
+            xfwm4/themes/default/hide-pressed.xpm,
+            xfwm4/themes/default/left-active.xpm,
+            xfwm4/themes/default/left-inactive.xpm,
+            xfwm4/themes/default/maximize-active.xpm,
+            xfwm4/themes/default/maximize-inactive.xpm,
+            xfwm4/themes/default/maximize-pressed.xpm,
+            xfwm4/themes/default/maximize-toggled-active.xpm,
+            xfwm4/themes/default/maximize-toggled-inactive.xpm,
+            xfwm4/themes/default/maximize-toggled-pressed.xpm,
+            xfwm4/themes/default/menu-active.xpm,
+            xfwm4/themes/default/menu-inactive.xpm,
+            xfwm4/themes/default/menu-pressed.xpm,
+            xfwm4/themes/default/right-active.xpm,
+            xfwm4/themes/default/right-inactive.xpm,
+            xfwm4/themes/default/shade-active.xpm,
+            xfwm4/themes/default/shade-inactive.xpm,
+            xfwm4/themes/default/shade-pressed.xpm,
+            xfwm4/themes/default/shade-toggled-active.xpm,
+            xfwm4/themes/default/shade-toggled-inactive.xpm,
+            xfwm4/themes/default/shade-toggled-pressed.xpm,
+            xfwm4/themes/default/stick-active.xpm,
+            xfwm4/themes/default/stick-inactive.xpm,
+            xfwm4/themes/default/stick-pressed.xpm,
+            xfwm4/themes/default/stick-toggled-active.xpm,
+            xfwm4/themes/default/stick-toggled-inactive.xpm,
+            xfwm4/themes/default/stick-toggled-pressed.xpm,
+            xfwm4/themes/default/themerc,
+            xfwm4/themes/default/title-1-active.xpm,
+            xfwm4/themes/default/title-1-inactive.xpm,
+            xfwm4/themes/default/title-2-active.xpm,
+            xfwm4/themes/default/title-2-inactive.xpm,
+            xfwm4/themes/default/title-3-active.xpm,
+            xfwm4/themes/default/title-3-inactive.xpm,
+            xfwm4/themes/default/title-4-active.xpm,
+            xfwm4/themes/default/title-4-inactive.xpm,
+            xfwm4/themes/default/title-5-active.xpm,
+            xfwm4/themes/default/title-5-inactive.xpm,
+            xfwm4/themes/default/top-left-active.xpm,
+            xfwm4/themes/default/top-left-inactive.xpm,
+            xfwm4/themes/default/top-right-active.xpm,
+            xfwm4/themes/default/top-right-inactive.xpm: Revert xfwm4 default
+            theme to the one found in pre-release as it looked better Fix a
+            very small thing in netk-pager
     
     2003-10-10 19:21  huysmans
     
-    	* xfce4/plugins/pager/pager.c: Fix resizing bug
+            * xfce4/plugins/pager/pager.c: Fix resizing bug
     
     2003-10-09 23:41  huysmans
     
-    	* xfwm4/: mcs-plugin/workspaces.c, src/settings.c: Move workspace
-    	names settings into settings plugin. Rename count to
-    	Xfwm/WorkspaceCount for consistency.
+            * xfwm4/: mcs-plugin/workspaces.c, src/settings.c: Move workspace
+            names settings into settings plugin. Rename count to
+            Xfwm/WorkspaceCount for consistency.
     
     2003-10-09 23:03  xfce
     
-    	* libxfcegui4/: configure, configure.ac: Increase version number
+            * libxfcegui4/: configure, configure.ac: Increase version number
     
     2003-10-09 22:13  xfce
     
-    	* xfwm4/themes/default/: close-active.xpm, close-inactive.xpm,
-    	close-pressed.xpm, hide-active.xpm, hide-inactive.xpm,
-    	hide-pressed.xpm, maximize-active.xpm, maximize-inactive.xpm,
-    	maximize-pressed.xpm, maximize-toggled-active.xpm,
-    	maximize-toggled-inactive.xpm, maximize-toggled-pressed.xpm,
-    	menu-active.xpm, menu-inactive.xpm, menu-pressed.xpm,
-    	shade-active.xpm, shade-inactive.xpm, shade-pressed.xpm,
-    	shade-toggled-active.xpm, shade-toggled-inactive.xpm,
-    	shade-toggled-pressed.xpm, stick-active.xpm, stick-inactive.xpm,
-    	stick-pressed.xpm, stick-toggled-active.xpm,
-    	stick-toggled-inactive.xpm, stick-toggled-pressed.xpm, themerc,
-    	title-2-active.xpm, title-2-inactive.xpm, title-3-active.xpm,
-    	title-3-inactive.xpm, title-4-active.xpm, title-4-inactive.xpm:
-    	Change default theme for 4.2
+            * xfwm4/themes/default/: close-active.xpm, close-inactive.xpm,
+            close-pressed.xpm, hide-active.xpm, hide-inactive.xpm,
+            hide-pressed.xpm, maximize-active.xpm, maximize-inactive.xpm,
+            maximize-pressed.xpm, maximize-toggled-active.xpm,
+            maximize-toggled-inactive.xpm, maximize-toggled-pressed.xpm,
+            menu-active.xpm, menu-inactive.xpm, menu-pressed.xpm,
+            shade-active.xpm, shade-inactive.xpm, shade-pressed.xpm,
+            shade-toggled-active.xpm, shade-toggled-inactive.xpm,
+            shade-toggled-pressed.xpm, stick-active.xpm, stick-inactive.xpm,
+            stick-pressed.xpm, stick-toggled-active.xpm,
+            stick-toggled-inactive.xpm, stick-toggled-pressed.xpm, themerc,
+            title-2-active.xpm, title-2-inactive.xpm, title-3-active.xpm,
+            title-3-inactive.xpm, title-4-active.xpm, title-4-inactive.xpm:
+            Change default theme for 4.2
     
     2003-10-09 15:19  edscott
     
-    	* xffm/: glade_intl, src/glade_callbacks.h, src/glade_gui.c.bak,
-    	src/glade_gui.h: remove obsolete files
+            * xffm/: glade_intl, src/glade_callbacks.h, src/glade_gui.c.bak,
+            src/glade_gui.h: remove obsolete files
     
     2003-10-09 07:04  edscott
     
-    	* xffm/src/: Makefile.am, Makefile.in, callbacks.c, keybindings.c,
-    	keybindings.h, treeview.c, treeview.h: scroll by keyboard is now
-    	case insensitive, if shift is pressed, scroll search w ill proceed
-    	backwards. Backward scroll-search will not wrap. Forward
-    	scroll-sear ch will wrap (as before).
+            * xffm/src/: Makefile.am, Makefile.in, callbacks.c, keybindings.c,
+            keybindings.h, treeview.c, treeview.h: scroll by keyboard is now
+            case insensitive, if shift is pressed, scroll search w ill proceed
+            backwards. Backward scroll-search will not wrap. Forward
+            scroll-sear ch will wrap (as before).
     
     2003-10-09 04:14  edscott
     
-    	* xffm/: glade/xffm_main.glade, libs/apps.c, libs/bookmarks.c,
-    	libs/combo.c, libs/cpy.c, libs/dummies.c, libs/duplicate.c,
-    	libs/entry.c, libs/filter.c, libs/find.h, libs/goto.c, libs/goto.h,
-    	libs/icons.c, libs/input.c, libs/menu.c, libs/menu_callbacks.c,
-    	libs/misc.c, libs/monitor.c, libs/options.c, libs/options.h,
-    	libs/print.h, libs/refresh.c, libs/reg.c, libs/reg.h,
-    	libs/remove.c, libs/remove.h, libs/rename.c, libs/run.c,
-    	libs/run.h, libs/symlink.c, libs/touch.c, libs/trash.c,
-    	smb/smb_download.c, smb/smb_list.c, src/glade_main_gui.c,
-    	src/main.c, src/treeview.c, src/widgets.c: eliminate all warnings
-    	when compiling with --enable-debug
+            * xffm/: glade/xffm_main.glade, libs/apps.c, libs/bookmarks.c,
+            libs/combo.c, libs/cpy.c, libs/dummies.c, libs/duplicate.c,
+            libs/entry.c, libs/filter.c, libs/find.h, libs/goto.c, libs/goto.h,
+            libs/icons.c, libs/input.c, libs/menu.c, libs/menu_callbacks.c,
+            libs/misc.c, libs/monitor.c, libs/options.c, libs/options.h,
+            libs/print.h, libs/refresh.c, libs/reg.c, libs/reg.h,
+            libs/remove.c, libs/remove.h, libs/rename.c, libs/run.c,
+            libs/run.h, libs/symlink.c, libs/touch.c, libs/trash.c,
+            smb/smb_download.c, smb/smb_list.c, src/glade_main_gui.c,
+            src/main.c, src/treeview.c, src/widgets.c: eliminate all warnings
+            when compiling with --enable-debug
     
     2003-10-09 01:46  edscott
     
-    	* xffm/: xffm.glade, xffm.gladep, glade/xffm_find.glade,
-    	glade/xffm_find.gladep, glade/xffm_main.glade,
-    	glade/xffm_main.gladep, glade/xffm_remove.glade,
-    	glade/xffm_remove.gladep, libs/Makefile.am, libs/Makefile.in,
-    	libs/apps.c, libs/bookmarks.c, libs/combo.c, libs/combo.h,
-    	libs/cpy.c, libs/dnd.c, libs/duplicate.c, libs/entry.c,
-    	libs/filter.c, libs/filter.h, libs/find.c, libs/fstab.c,
-    	libs/goto.c, libs/help.c, libs/input.c, libs/input.h,
-    	libs/menu_callbacks.c, libs/menu_callbacks.h, libs/misc.c,
-    	libs/monitor.c, libs/new.c, libs/options.c, libs/pasteboard.c,
-    	libs/print.c, libs/refresh.c, libs/reg.c, libs/remove.c,
-    	libs/rename.c, libs/run.c, libs/scramble.c, libs/settings.c,
-    	libs/symlink.c, libs/terminal.c, libs/touch.c, libs/trash.c,
-    	libs/tubo.c, libs/xfdiff.c, libs/zoom.c, smb/smb_list.c,
-    	src/Makefile.am, src/Makefile.in, src/add_file.c, src/add_folder.c,
-    	src/add_node_contents.c, src/aux.c, src/callbacks.c,
-    	src/glade_callbacks.c, src/glade_find_callbacks.c,
-    	src/glade_find_callbacks.h, src/glade_find_gui.c,
-    	src/glade_find_gui.h, src/glade_gui.c, src/glade_main_callbacks.c,
-    	src/glade_main_callbacks.h, src/glade_main_gui.c,
-    	src/glade_main_gui.h, src/glade_remove_callbacks.c,
-    	src/glade_remove_callbacks.h, src/glade_remove_gui.c,
-    	src/glade_remove_gui.h, src/main.c, src/mcs-manager.c,
-    	src/treeview.c, src/widgets.c: broke glade files into three parts
+            * xffm/: xffm.glade, xffm.gladep, glade/xffm_find.glade,
+            glade/xffm_find.gladep, glade/xffm_main.glade,
+            glade/xffm_main.gladep, glade/xffm_remove.glade,
+            glade/xffm_remove.gladep, libs/Makefile.am, libs/Makefile.in,
+            libs/apps.c, libs/bookmarks.c, libs/combo.c, libs/combo.h,
+            libs/cpy.c, libs/dnd.c, libs/duplicate.c, libs/entry.c,
+            libs/filter.c, libs/filter.h, libs/find.c, libs/fstab.c,
+            libs/goto.c, libs/help.c, libs/input.c, libs/input.h,
+            libs/menu_callbacks.c, libs/menu_callbacks.h, libs/misc.c,
+            libs/monitor.c, libs/new.c, libs/options.c, libs/pasteboard.c,
+            libs/print.c, libs/refresh.c, libs/reg.c, libs/remove.c,
+            libs/rename.c, libs/run.c, libs/scramble.c, libs/settings.c,
+            libs/symlink.c, libs/terminal.c, libs/touch.c, libs/trash.c,
+            libs/tubo.c, libs/xfdiff.c, libs/zoom.c, smb/smb_list.c,
+            src/Makefile.am, src/Makefile.in, src/add_file.c, src/add_folder.c,
+            src/add_node_contents.c, src/aux.c, src/callbacks.c,
+            src/glade_callbacks.c, src/glade_find_callbacks.c,
+            src/glade_find_callbacks.h, src/glade_find_gui.c,
+            src/glade_find_gui.h, src/glade_gui.c, src/glade_main_callbacks.c,
+            src/glade_main_callbacks.h, src/glade_main_gui.c,
+            src/glade_main_gui.h, src/glade_remove_callbacks.c,
+            src/glade_remove_callbacks.h, src/glade_remove_gui.c,
+            src/glade_remove_gui.h, src/main.c, src/mcs-manager.c,
+            src/treeview.c, src/widgets.c: broke glade files into three parts
     
     2003-10-08 23:43  xfce
     
-    	* xfwm4/src/: client.c, events.c, settings.c: [no log message]
+            * xfwm4/src/: client.c, events.c, settings.c: [no log message]
     
     2003-10-08 22:29  xfce
     
-    	* xfwm4/themes/default.keys/keythemerc: Change raise/lower key
+            * xfwm4/themes/default.keys/keythemerc: Change raise/lower key
     
     2003-10-08 22:24  xfce
     
-    	* xfwm4/: src/settings.c, themes/default.keys/keythemerc: Fix
-    	raise/lower key shortcut patch
+            * xfwm4/: src/settings.c, themes/default.keys/keythemerc: Fix
+            raise/lower key shortcut patch
     
     2003-10-08 22:12  xfce
     
-    	* xfwm4/: configure, configure.ac, themes/Makefile.am,
-    	themes/Makefile.in, themes/default/title-2-active.xpm,
-    	themes/default/title-2-inactive.xpm,
-    	themes/default/title-4-active.xpm,
-    	themes/default/title-4-inactive.xpm,
-    	themes/default/top-right-active.xpm,
-    	themes/default/top-right-inactive.xpm: Add missing files
+            * xfwm4/: configure, configure.ac, themes/Makefile.am,
+            themes/Makefile.in, themes/default/title-2-active.xpm,
+            themes/default/title-2-inactive.xpm,
+            themes/default/title-4-active.xpm,
+            themes/default/title-4-inactive.xpm,
+            themes/default/top-right-active.xpm,
+            themes/default/top-right-inactive.xpm: Add missing files
     
     2003-10-08 10:20  huysmans
     
-    	* xfdesktop/doc/C/xfdesktop.html, xfdesktop/doc/C/xfdesktop.xml,
-    	xfdesktop/doc/C/images/Makefile.am,
-    	xfdesktop/doc/C/images/Makefile.in,
-    	xfdesktop/doc/C/images/xfdesktop-workspace.png,
-    	xfdesktop/settings/Makefile.am, xfdesktop/settings/Makefile.in,
-    	xfdesktop/settings/backdrop-icon.h, xfdesktop/src/Makefile.am,
-    	xfdesktop/src/Makefile.in, xfdesktop/src/menu.c,
-    	xfdesktop/src/settings.c, xfwm4/configure, xfwm4/configure.ac,
-    	xfwm4/doc/C/xfwm4.html, xfwm4/doc/C/xfwm4.xml,
-    	xfwm4/doc/C/images/Makefile.am, xfwm4/doc/C/images/Makefile.in,
-    	xfwm4/doc/C/images/xfwm_workspaces.png,
-    	xfwm4/mcs-plugin/Makefile.am, xfwm4/mcs-plugin/Makefile.in,
-    	xfwm4/mcs-plugin/margins.c, xfwm4/mcs-plugin/margins.h,
-    	xfwm4/mcs-plugin/margins_plugin.c, xfwm4/mcs-plugin/plugin.c,
-    	xfwm4/mcs-plugin/plugin.h, xfwm4/mcs-plugin/workspaces-icon.h,
-    	xfwm4/mcs-plugin/workspaces.c, xfwm4/mcs-plugin/workspaces.h,
-    	xfwm4/mcs-plugin/workspaces.png, xfwm4/src/settings.c,
-    	xfwm4/themes/Makefile.am, xfwm4/themes/Makefile.in: Largish update:
-    	merge workspaces dialog from xfdesktop with workspace margins
-    	dialog from xfwm4. The new dialog is part of xfwm4.
+            * xfdesktop/doc/C/xfdesktop.html, xfdesktop/doc/C/xfdesktop.xml,
+            xfdesktop/doc/C/images/Makefile.am,
+            xfdesktop/doc/C/images/Makefile.in,
+            xfdesktop/doc/C/images/xfdesktop-workspace.png,
+            xfdesktop/settings/Makefile.am, xfdesktop/settings/Makefile.in,
+            xfdesktop/settings/backdrop-icon.h, xfdesktop/src/Makefile.am,
+            xfdesktop/src/Makefile.in, xfdesktop/src/menu.c,
+            xfdesktop/src/settings.c, xfwm4/configure, xfwm4/configure.ac,
+            xfwm4/doc/C/xfwm4.html, xfwm4/doc/C/xfwm4.xml,
+            xfwm4/doc/C/images/Makefile.am, xfwm4/doc/C/images/Makefile.in,
+            xfwm4/doc/C/images/xfwm_workspaces.png,
+            xfwm4/mcs-plugin/Makefile.am, xfwm4/mcs-plugin/Makefile.in,
+            xfwm4/mcs-plugin/margins.c, xfwm4/mcs-plugin/margins.h,
+            xfwm4/mcs-plugin/margins_plugin.c, xfwm4/mcs-plugin/plugin.c,
+            xfwm4/mcs-plugin/plugin.h, xfwm4/mcs-plugin/workspaces-icon.h,
+            xfwm4/mcs-plugin/workspaces.c, xfwm4/mcs-plugin/workspaces.h,
+            xfwm4/mcs-plugin/workspaces.png, xfwm4/src/settings.c,
+            xfwm4/themes/Makefile.am, xfwm4/themes/Makefile.in: Largish update:
+            merge workspaces dialog from xfdesktop with workspace margins
+            dialog from xfwm4. The new dialog is part of xfwm4.
     
     2003-10-07 22:44  xfce
     
-    	* libxfcegui4/libxfcegui4/: Makefile.am, Makefile.in,
-    	netk-class-group.c, netk-class-group.h, netk-private.h,
-    	netk-screen.c, netk-screen.h, netk-tasklist.c, netk-window.c,
-    	netk-window.h, netk-xutils.c, netk-xutils.h: Backport changes from
-    	libwnck HEAD cvs
+            * libxfcegui4/libxfcegui4/: Makefile.am, Makefile.in,
+            netk-class-group.c, netk-class-group.h, netk-private.h,
+            netk-screen.c, netk-screen.h, netk-tasklist.c, netk-window.c,
+            netk-window.h, netk-xutils.c, netk-xutils.h: Backport changes from
+            libwnck HEAD cvs
     
     2003-10-07 22:40  xfce
     
-    	* xffm/libs/: input.c, run.c: Include Edscott patches
+            * xffm/libs/: input.c, run.c: Include Edscott patches
     
     2003-10-07 22:31  xfce
     
-    	* xfwm4/: configure, configure.ac, src/client.c, src/events.c,
-    	themes/Makefile.am, themes/Makefile.in,
-    	themes/default/bottom-active.xpm,
-    	themes/default/bottom-inactive.xpm,
-    	themes/default/bottom-left-active.xpm,
-    	themes/default/bottom-left-inactive.xpm,
-    	themes/default/bottom-right-active.xpm,
-    	themes/default/bottom-right-inactive.xpm,
-    	themes/default/left-active.xpm, themes/default/left-inactive.xpm,
-    	themes/default/right-active.xpm, themes/default/right-inactive.xpm,
-    	themes/default/themerc, themes/default/title-1-active.xpm,
-    	themes/default/title-1-inactive.xpm,
-    	themes/default/title-2-active.xpm,
-    	themes/default/title-2-inactive.xpm,
-    	themes/default/title-3-active.xpm,
-    	themes/default/title-3-inactive.xpm,
-    	themes/default/title-4-active.xpm,
-    	themes/default/title-4-inactive.xpm,
-    	themes/default/title-5-active.xpm,
-    	themes/default/title-5-inactive.xpm,
-    	themes/default/top-left-active.xpm,
-    	themes/default/top-left-inactive.xpm,
-    	themes/default/top-right-active.xpm,
-    	themes/default/top-right-inactive.xpm,
-    	themes/tgc-large/Makefile.am, themes/tgc-large/Makefile.in,
-    	themes/tgc-large/README, themes/tgc-large/bottom-active.xpm,
-    	themes/tgc-large/bottom-inactive.xpm,
-    	themes/tgc-large/bottom-left-active.xpm,
-    	themes/tgc-large/bottom-left-inactive.xpm,
-    	themes/tgc-large/bottom-right-active.xpm,
-    	themes/tgc-large/bottom-right-inactive.xpm,
-    	themes/tgc-large/close-active.xpm,
-    	themes/tgc-large/close-inactive.xpm,
-    	themes/tgc-large/close-pressed.xpm,
-    	themes/tgc-large/hide-active.xpm,
-    	themes/tgc-large/hide-inactive.xpm,
-    	themes/tgc-large/hide-pressed.xpm,
-    	themes/tgc-large/left-active.xpm,
-    	themes/tgc-large/left-inactive.xpm,
-    	themes/tgc-large/maximize-active.xpm,
-    	themes/tgc-large/maximize-inactive.xpm,
-    	themes/tgc-large/maximize-pressed.xpm,
-    	themes/tgc-large/maximize-toggled-active.xpm,
-    	themes/tgc-large/maximize-toggled-inactive.xpm,
-    	themes/tgc-large/maximize-toggled-pressed.xpm,
-    	themes/tgc-large/menu-active.xpm,
-    	themes/tgc-large/menu-inactive.xpm,
-    	themes/tgc-large/menu-pressed.xpm,
-    	themes/tgc-large/right-active.xpm,
-    	themes/tgc-large/right-inactive.xpm,
-    	themes/tgc-large/shade-active.xpm,
-    	themes/tgc-large/shade-inactive.xpm,
-    	themes/tgc-large/shade-pressed.xpm,
-    	themes/tgc-large/shade-toggled-active.xpm,
-    	themes/tgc-large/shade-toggled-inactive.xpm,
-    	themes/tgc-large/shade-toggled-pressed.xpm,
-    	themes/tgc-large/stick-active.xpm,
-    	themes/tgc-large/stick-inactive.xpm,
-    	themes/tgc-large/stick-pressed.xpm,
-    	themes/tgc-large/stick-toggled-active.xpm,
-    	themes/tgc-large/stick-toggled-inactive.xpm,
-    	themes/tgc-large/stick-toggled-pressed.xpm,
-    	themes/tgc-large/themerc, themes/tgc-large/title-1-active.xpm,
-    	themes/tgc-large/title-1-inactive.xpm,
-    	themes/tgc-large/title-2-active.xpm,
-    	themes/tgc-large/title-2-inactive.xpm,
-    	themes/tgc-large/title-3-active.xpm,
-    	themes/tgc-large/title-3-inactive.xpm,
-    	themes/tgc-large/title-4-active.xpm,
-    	themes/tgc-large/title-4-inactive.xpm,
-    	themes/tgc-large/title-5-active.xpm,
-    	themes/tgc-large/title-5-inactive.xpm,
-    	themes/tgc-large/top-left-active.xpm,
-    	themes/tgc-large/top-left-inactive.xpm,
-    	themes/tgc-large/top-right-active.xpm,
-    	themes/tgc-large/top-right-inactive.xpm: Change default theme, keep
-    	old 4.0 theme as default-4.0 and add tgc-large theme Include
-    	improvements for fullscreen mode for gst from Arwed von Merkatz
-    	<v.merkatz@gmx.net>
+            * xfwm4/: configure, configure.ac, src/client.c, src/events.c,
+            themes/Makefile.am, themes/Makefile.in,
+            themes/default/bottom-active.xpm,
+            themes/default/bottom-inactive.xpm,
+            themes/default/bottom-left-active.xpm,
+            themes/default/bottom-left-inactive.xpm,
+            themes/default/bottom-right-active.xpm,
+            themes/default/bottom-right-inactive.xpm,
+            themes/default/left-active.xpm, themes/default/left-inactive.xpm,
+            themes/default/right-active.xpm, themes/default/right-inactive.xpm,
+            themes/default/themerc, themes/default/title-1-active.xpm,
+            themes/default/title-1-inactive.xpm,
+            themes/default/title-2-active.xpm,
+            themes/default/title-2-inactive.xpm,
+            themes/default/title-3-active.xpm,
+            themes/default/title-3-inactive.xpm,
+            themes/default/title-4-active.xpm,
+            themes/default/title-4-inactive.xpm,
+            themes/default/title-5-active.xpm,
+            themes/default/title-5-inactive.xpm,
+            themes/default/top-left-active.xpm,
+            themes/default/top-left-inactive.xpm,
+            themes/default/top-right-active.xpm,
+            themes/default/top-right-inactive.xpm,
+            themes/tgc-large/Makefile.am, themes/tgc-large/Makefile.in,
+            themes/tgc-large/README, themes/tgc-large/bottom-active.xpm,
+            themes/tgc-large/bottom-inactive.xpm,
+            themes/tgc-large/bottom-left-active.xpm,
+            themes/tgc-large/bottom-left-inactive.xpm,
+            themes/tgc-large/bottom-right-active.xpm,
+            themes/tgc-large/bottom-right-inactive.xpm,
+            themes/tgc-large/close-active.xpm,
+            themes/tgc-large/close-inactive.xpm,
+            themes/tgc-large/close-pressed.xpm,
+            themes/tgc-large/hide-active.xpm,
+            themes/tgc-large/hide-inactive.xpm,
+            themes/tgc-large/hide-pressed.xpm,
+            themes/tgc-large/left-active.xpm,
+            themes/tgc-large/left-inactive.xpm,
+            themes/tgc-large/maximize-active.xpm,
+            themes/tgc-large/maximize-inactive.xpm,
+            themes/tgc-large/maximize-pressed.xpm,
+            themes/tgc-large/maximize-toggled-active.xpm,
+            themes/tgc-large/maximize-toggled-inactive.xpm,
+            themes/tgc-large/maximize-toggled-pressed.xpm,
+            themes/tgc-large/menu-active.xpm,
+            themes/tgc-large/menu-inactive.xpm,
+            themes/tgc-large/menu-pressed.xpm,
+            themes/tgc-large/right-active.xpm,
+            themes/tgc-large/right-inactive.xpm,
+            themes/tgc-large/shade-active.xpm,
+            themes/tgc-large/shade-inactive.xpm,
+            themes/tgc-large/shade-pressed.xpm,
+            themes/tgc-large/shade-toggled-active.xpm,
+            themes/tgc-large/shade-toggled-inactive.xpm,
+            themes/tgc-large/shade-toggled-pressed.xpm,
+            themes/tgc-large/stick-active.xpm,
+            themes/tgc-large/stick-inactive.xpm,
+            themes/tgc-large/stick-pressed.xpm,
+            themes/tgc-large/stick-toggled-active.xpm,
+            themes/tgc-large/stick-toggled-inactive.xpm,
+            themes/tgc-large/stick-toggled-pressed.xpm,
+            themes/tgc-large/themerc, themes/tgc-large/title-1-active.xpm,
+            themes/tgc-large/title-1-inactive.xpm,
+            themes/tgc-large/title-2-active.xpm,
+            themes/tgc-large/title-2-inactive.xpm,
+            themes/tgc-large/title-3-active.xpm,
+            themes/tgc-large/title-3-inactive.xpm,
+            themes/tgc-large/title-4-active.xpm,
+            themes/tgc-large/title-4-inactive.xpm,
+            themes/tgc-large/title-5-active.xpm,
+            themes/tgc-large/title-5-inactive.xpm,
+            themes/tgc-large/top-left-active.xpm,
+            themes/tgc-large/top-left-inactive.xpm,
+            themes/tgc-large/top-right-active.xpm,
+            themes/tgc-large/top-right-inactive.xpm: Change default theme, keep
+            old 4.0 theme as default-4.0 and add tgc-large theme Include
+            improvements for fullscreen mode for gst from Arwed von Merkatz
+            <v.merkatz@gmx.net>
     
     +++
     
@@ -34220,9 +34369,9 @@ Date:   Wed Apr 9 20:44:24 2003 +0000
 
     Improved debug.m4:
     
-    	1) --disable-debug no longer disables assert()'s
-    	2) --enable-profiling now enables profiling code
-    	3) --disable-asserts allows disabling of assert()'s
+            1) --disable-debug no longer disables assert()'s
+            2) --enable-profiling now enables profiling code
+            3) --disable-asserts allows disabling of assert()'s
     
     
     (Old svn revision: 11055)
