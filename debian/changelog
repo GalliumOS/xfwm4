@@ -1,3 +1,17 @@
+xfwm4 (4.12.4-0ubuntu1) bismuth; urgency=medium
+
+  * Prepare for GalliumOS 3.0
+    - patches from 4.12.3-1ubuntu2-galliumos1
+
+ -- reynhout <reynhout@galliumos.org>  Mon, 07 May 2018 04:37:59 +0000
+
+xfwm4 (4.12.4-0ubuntu1) devel; urgency=medium
+
+  * New upstream bugfix release.
+    - Drop upstream patches.
+
+ -- Unit 193 <unit193@ubuntu.com>  Fri, 17 Mar 2017 17:46:30 -0400
+
 xfwm4 (4.12.3-1ubuntu2-galliumos1) xenon; urgency=medium
 
   * Re-apply GalliumOS patches

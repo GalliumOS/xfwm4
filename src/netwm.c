@@ -130,7 +130,7 @@ clientSetNetState (Client * c)
         TRACE ("clientSetNetState : demands_attention");
         data[i++] = display_info->atoms[NET_WM_STATE_DEMANDS_ATTENTION];
     }
-    if (c == clientGetFocus ())
+    if (c == clientGetFocus () || c->type & WINDOW_TYPE_STATE_FOCUSED)
     {
         TRACE ("clientSetNetState : focused");
         data[i++] = display_info->atoms[NET_WM_STATE_FOCUSED];
@@ -613,26 +613,10 @@ clientNetMoveResize (Client * c, XClientMessageEvent * ev)
     button = (int) ev->data.l[3];
     event  = (XEvent *) ev;
 
-    if (button == 0)
+    /* We don't deal with button > 7, in such a case we pretent it's just any button */
+    if (button > Button7)
     {
-        button_mask = getMouseXY (screen_info, c->window, &dx, &dy);
-        if (button_mask & Button1Mask)
-        {
-            button = Button1;
-        }
-        else if (button_mask & Button2Mask)
-        {
-            button = Button2;
-        }
-        else if (button_mask & Button3Mask)
-        {
-            button = Button3;
-        }
-        else
-        {
-            /* Fallback */
-            button = Button1;
-        }
+        button = AnyButton;
     }
 
     corner = CORNER_BOTTOM_RIGHT;

@@ -73,6 +73,7 @@ struct _MoveResizeData
     gboolean is_transient;
     gboolean move_resized;
     gboolean released;
+    gboolean client_gone;
     guint button;
     gint cancel_x, cancel_y;
     gint cancel_w, cancel_h;
@@ -618,11 +619,19 @@ static eventFilterStatus
 clientButtonReleaseFilter (XEvent * xevent, gpointer data)
 {
     MoveResizeData *passdata = (MoveResizeData *) data;
+    ScreenInfo *screen_info;
+    Client *c;
+
+    c = passdata->c;
+    screen_info = c->screen_info;
 
     TRACE ("entering clientButtonReleaseFilter");
 
-    if ((xevent->type == ButtonRelease) &&
-        (xevent->xbutton.button == passdata->button))
+    if ((xevent->type == ButtonRelease &&
+         (passdata->button == AnyButton ||
+          passdata->button == xevent->xbutton.button)) ||
+        (xevent->type == KeyPress &&
+         xevent->xkey.keycode == screen_info->params->keys[KEY_CANCEL].keycode))
     {
         gtk_main_quit ();
         return EVENT_FILTER_STOP;
@@ -986,7 +995,9 @@ clientMoveEventFilter (XEvent * xevent, gpointer data)
     else if (xevent->type == ButtonRelease)
     {
         moving = FALSE;
-        passdata->released = passdata->use_keys || (xevent->xbutton.button == passdata->button);
+        passdata->released = (passdata->use_keys ||
+                              passdata->button == AnyButton ||
+                              passdata->button == xevent->xbutton.button);
     }
     else if (xevent->type == MotionNotify)
     {
@@ -1112,6 +1123,12 @@ clientMoveEventFilter (XEvent * xevent, gpointer data)
     else if ((xevent->type == UnmapNotify) && (xevent->xunmap.window == c->window))
     {
         moving = FALSE;
+        status = EVENT_FILTER_CONTINUE;
+        passdata->client_gone = TRUE;
+        if (use_xor_move(screen_info))
+        {
+            clientDrawOutline (c);
+        }
     }
     else if (xevent->type == EnterNotify)
     {
@@ -1175,7 +1192,8 @@ clientMove (Client * c, XEvent * ev)
     passdata.use_keys = FALSE;
     passdata.grab = FALSE;
     passdata.released = FALSE;
-    passdata.button = 0;
+    passdata.client_gone = FALSE;
+    passdata.button = AnyButton;
     passdata.is_transient = clientIsValidTransientOrModal (c);
     passdata.move_resized = FALSE;
     passdata.wireframe = NULL;
@@ -1248,26 +1266,17 @@ clientMove (Client * c, XEvent * ev)
     gtk_main ();
     eventFilterPop (display_info->xfilter);
     TRACE ("leaving move loop");
+    if (passdata.client_gone)
+    {
+        goto move_cleanup;
+    }
     FLAG_UNSET (c->xfwm_flags, XFWM_FLAG_MOVING_RESIZING);
 
-    /* Put back the sidewalks as they ought to be */
-    placeSidewalks (screen_info, screen_info->params->wrap_workspaces);
-
-#ifdef SHOW_POSITION
-    if (passdata.poswin)
-    {
-        poswinDestroy (passdata.poswin);
-    }
-#endif /* SHOW_POSITION */
     if (passdata.grab && screen_info->params->box_move)
     {
         clientDrawOutline (c);
     }
 
-    if (passdata.wireframe)
-    {
-        wireframeDelete (passdata.wireframe);
-    }
     /* Set window opacity to its original value */
     clientSetOpacity (c, c->opacity, OPACITY_MOVE, 0);
 
@@ -1287,7 +1296,7 @@ clientMove (Client * c, XEvent * ev)
     }
     clientConfigure (c, &wc, changes, passdata.configure_flags);
 
-    if (!passdata.released)
+    if (passdata.button != AnyButton && !passdata.released)
     {
         /* If this is a drag-move, wait for the button to be released.
          * If we don't, we might get release events in the wrong place.
@@ -1295,6 +1304,22 @@ clientMove (Client * c, XEvent * ev)
         eventFilterPush (display_info->xfilter, clientButtonReleaseFilter, &passdata);
         gtk_main ();
         eventFilterPop (display_info->xfilter);
+    }
+
+move_cleanup:
+    /* Put back the sidewalks as they ought to be */
+    placeSidewalks (screen_info, screen_info->params->wrap_workspaces);
+
+#ifdef SHOW_POSITION
+    if (passdata.poswin)
+    {
+        poswinDestroy (passdata.poswin);
+    }
+#endif /* SHOW_POSITION */
+
+    if (passdata.wireframe)
+    {
+        wireframeDelete (passdata.wireframe);
     }
 
     myScreenUngrabKeyboard (screen_info, myDisplayGetCurrentTime (display_info));
@@ -1638,11 +1663,19 @@ clientResizeEventFilter (XEvent * xevent, gpointer data)
     else if (xevent->type == ButtonRelease)
     {
         resizing = FALSE;
-        passdata->released = (passdata->use_keys || (xevent->xbutton.button == passdata->button));
+        passdata->released = (passdata->use_keys ||
+                              passdata->button == AnyButton ||
+                              passdata->button == xevent->xbutton.button);
     }
     else if ((xevent->type == UnmapNotify) && (xevent->xunmap.window == c->window))
     {
         resizing = FALSE;
+        status = EVENT_FILTER_CONTINUE;
+        passdata->client_gone = TRUE;
+        if (use_xor_resize(screen_info))
+        {
+            clientDrawOutline (c);
+        }
     }
     else if (xevent->type == EnterNotify)
     {
@@ -1715,7 +1748,8 @@ clientResize (Client * c, int handle, XEvent * ev)
     passdata.use_keys = FALSE;
     passdata.grab = FALSE;
     passdata.released = FALSE;
-    passdata.button = 0;
+    passdata.client_gone = FALSE;
+    passdata.button = AnyButton;
     passdata.handle = handle;
     passdata.wireframe = NULL;
     w_orig = c->width;
@@ -1788,19 +1822,15 @@ clientResize (Client * c, int handle, XEvent * ev)
     gtk_main ();
     eventFilterPop (display_info->xfilter);
     TRACE ("leaving resize loop");
+    if (passdata.client_gone)
+    {
+        goto resize_cleanup;
+    }
     FLAG_UNSET (c->xfwm_flags, XFWM_FLAG_MOVING_RESIZING);
 
-    if (passdata.poswin)
-    {
-        poswinDestroy (passdata.poswin);
-    }
     if (passdata.grab && screen_info->params->box_resize)
     {
         clientDrawOutline (c);
-    }
-    if (passdata.wireframe)
-    {
-        wireframeDelete (passdata.wireframe);
     }
 
     /* Set window opacity to its original value */
@@ -1819,7 +1849,7 @@ clientResize (Client * c, int handle, XEvent * ev)
     }
     clientReconfigure (c, NO_CFG_FLAG);
 
-    if (!passdata.released)
+    if (passdata.button != AnyButton && !passdata.released)
     {
         /* If this is a drag-resize, wait for the button to be released.
          * If we don't, we might get release events in the wrong place.
@@ -1827,6 +1857,16 @@ clientResize (Client * c, int handle, XEvent * ev)
         eventFilterPush (display_info->xfilter, clientButtonReleaseFilter, &passdata);
         gtk_main ();
         eventFilterPop (display_info->xfilter);
+    }
+
+resize_cleanup:
+    if (passdata.poswin)
+    {
+        poswinDestroy (passdata.poswin);
+    }
+    if (passdata.wireframe)
+    {
+        wireframeDelete (passdata.wireframe);
     }
 
     myScreenUngrabKeyboard (screen_info, myDisplayGetCurrentTime (display_info));

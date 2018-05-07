@@ -155,7 +155,11 @@ set_easy_click (ScreenInfo *screen_info, const char *modifier)
     else
     {
         modstr = g_strdup_printf ("<%s>", modifier);
-        screen_info->params->easy_click = getModifierMap (modstr);
+        if (!getModifierMap (modstr, &screen_info->params->easy_click))
+        {
+            g_message (_("Unsupported keyboard modifier '%s'"), modstr);
+            screen_info->params->easy_click = 0;
+        }
         g_free (modstr);
     }
 }
@@ -250,14 +254,14 @@ setXfwmColor (ScreenInfo *screen_info, XfwmColor *color, Settings *rc, int id, c
 {
     if (color->allocated)
     {
-        gdk_colormap_free_colors (gdk_screen_get_rgb_colormap (screen_info->gscr), &color->col, 1);
+        gdk_colormap_free_colors (gdk_screen_get_system_colormap (screen_info->gscr), &color->col, 1);
         color->allocated = FALSE;
     }
 
     /** do a direct value_get_string */
     if (gdk_color_parse (g_value_get_string(rc[id].value), &color->col))
     {
-        if (gdk_colormap_alloc_color (gdk_screen_get_rgb_colormap (screen_info->gscr),
+        if (gdk_colormap_alloc_color (gdk_screen_get_system_colormap (screen_info->gscr),
                                       &color->col, FALSE, FALSE))
         {
             color->allocated = TRUE;
