@@ -1,4 +1,4 @@
-xfwm4 (4.12.4-0ubuntu1) bismuth; urgency=medium
+xfwm4 (4.12.4-0ubuntu1-galliumos0) bismuth; urgency=medium
 
   * Prepare for GalliumOS 3.0
     - patches from 4.12.3-1ubuntu2-galliumos1
