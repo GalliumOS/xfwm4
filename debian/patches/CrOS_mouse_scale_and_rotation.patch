@@ -438,7 +438,7 @@
  DIST_SUBDIRS = $(SUBDIRS)
 -am__DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/config.h.in AUTHORS \
 -	COPYING ChangeLog INSTALL NEWS README TODO compile \
--	config.guess config.sub depcomp install-sh ltmain.sh missing
+-	config.guess config.sub install-sh ltmain.sh missing
  DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
  distdir = $(PACKAGE)-$(VERSION)
  top_distdir = $(distdir)
@@ -509,475 +509,475 @@
  @SET_MAKE@
  
  distclean-local:
---- a/aclocal.m4
-+++ b/aclocal.m4
-@@ -1,6 +1,6 @@
--# generated automatically by aclocal 1.15 -*- Autoconf -*-
-+# generated automatically by aclocal 1.14.1 -*- Autoconf -*-
- 
--# Copyright (C) 1996-2014 Free Software Foundation, Inc.
-+# Copyright (C) 1996-2013 Free Software Foundation, Inc.
- 
- # This file is free software; the Free Software Foundation
- # gives unlimited permission to copy and/or distribute it,
-@@ -1964,12 +1964,19 @@
- 	    LD="${LD-ld} -m elf_i386_fbsd"
- 	    ;;
- 	  x86_64-*linux*)
--	    LD="${LD-ld} -m elf_i386"
-+	    case `/usr/bin/file conftest.o` in
-+	      *x86-64*)
-+		LD="${LD-ld} -m elf32_x86_64"
-+		;;
-+	      *)
-+		LD="${LD-ld} -m elf_i386"
-+		;;
-+	    esac
- 	    ;;
--	  powerpc64le-*linux*)
-+	  powerpc64le-*)
- 	    LD="${LD-ld} -m elf32lppclinux"
- 	    ;;
--	  powerpc64-*linux*)
-+	  powerpc64-*)
- 	    LD="${LD-ld} -m elf32ppclinux"
- 	    ;;
- 	  s390x-*linux*)
-@@ -1988,10 +1995,10 @@
- 	  x86_64-*linux*)
- 	    LD="${LD-ld} -m elf_x86_64"
- 	    ;;
--	  powerpcle-*linux*)
-+	  powerpcle-*)
- 	    LD="${LD-ld} -m elf64lppc"
- 	    ;;
--	  powerpc-*linux*)
-+	  powerpc-*)
- 	    LD="${LD-ld} -m elf64ppc"
- 	    ;;
- 	  s390*-*linux*|s390*-*tpf*)
-@@ -2334,7 +2341,8 @@
-     ;;
-   *)
-     lt_cv_sys_max_cmd_len=`(getconf ARG_MAX) 2> /dev/null`
--    if test -n "$lt_cv_sys_max_cmd_len"; then
-+    if test -n "$lt_cv_sys_max_cmd_len" && \
-+	test undefined != "$lt_cv_sys_max_cmd_len"; then
-       lt_cv_sys_max_cmd_len=`expr $lt_cv_sys_max_cmd_len \/ 4`
-       lt_cv_sys_max_cmd_len=`expr $lt_cv_sys_max_cmd_len \* 3`
-     else
-@@ -3158,17 +3166,6 @@
-   esac
-   ;;
- 
--gnu*)
--  version_type=linux # correct to gnu/linux during the next big refactor
--  need_lib_prefix=no
--  need_version=no
--  library_names_spec='${libname}${release}${shared_ext}$versuffix ${libname}${release}${shared_ext}${major} ${libname}${shared_ext}'
--  soname_spec='${libname}${release}${shared_ext}$major'
--  shlibpath_var=LD_LIBRARY_PATH
--  shlibpath_overrides_runpath=no
--  hardcode_into_libs=yes
--  ;;
--
- haiku*)
-   version_type=linux # correct to gnu/linux during the next big refactor
-   need_lib_prefix=no
-@@ -3285,7 +3282,7 @@
-   ;;
- 
- # This must be glibc/ELF.
--linux* | k*bsd*-gnu | kopensolaris*-gnu)
-+linux* | k*bsd*-gnu | kopensolaris*-gnu | gnu*)
-   version_type=linux # correct to gnu/linux during the next big refactor
-   need_lib_prefix=no
-   need_version=no
-@@ -3315,14 +3312,10 @@
-   # before this can be enabled.
-   hardcode_into_libs=yes
- 
--  # Add ABI-specific directories to the system library path.
--  sys_lib_dlsearch_path_spec="/lib64 /usr/lib64 /lib /usr/lib"
--
-   # Append ld.so.conf contents to the search path
-   if test -f /etc/ld.so.conf; then
-     lt_ld_extra=`awk '/^include / { system(sprintf("cd /etc; cat %s 2>/dev/null", \[$]2)); skip = 1; } { if (!skip) print \[$]0; skip = 0; }' < /etc/ld.so.conf | $SED -e 's/#.*//;/^[	 ]*hwcap[	 ]/d;s/[:,	]/ /g;s/=[^=]*$//;s/=[^= ]* / /g;s/"//g;/^$/d' | tr '\n' ' '`
--    sys_lib_dlsearch_path_spec="$sys_lib_dlsearch_path_spec $lt_ld_extra"
--
-+    sys_lib_dlsearch_path_spec="/lib /usr/lib $lt_ld_extra"
-   fi
- 
-   # We used to test for /lib/ld.so.1 and disable shared libraries on
-@@ -3334,6 +3327,18 @@
-   dynamic_linker='GNU/Linux ld.so'
-   ;;
- 
-+netbsdelf*-gnu)
-+  version_type=linux
-+  need_lib_prefix=no
-+  need_version=no
-+  library_names_spec='${libname}${release}${shared_ext}$versuffix ${libname}${release}${shared_ext}$major ${libname}${shared_ext}'
-+  soname_spec='${libname}${release}${shared_ext}$major'
-+  shlibpath_var=LD_LIBRARY_PATH
-+  shlibpath_overrides_runpath=no
-+  hardcode_into_libs=yes
-+  dynamic_linker='NetBSD ld.elf_so'
-+  ;;
-+
- netbsd*)
-   version_type=sunos
-   need_lib_prefix=no
-@@ -3893,10 +3898,6 @@
-   fi
-   ;;
- 
--gnu*)
--  lt_cv_deplibs_check_method=pass_all
--  ;;
--
- haiku*)
-   lt_cv_deplibs_check_method=pass_all
-   ;;
-@@ -3935,11 +3936,11 @@
-   ;;
- 
- # This must be glibc/ELF.
--linux* | k*bsd*-gnu | kopensolaris*-gnu)
-+linux* | k*bsd*-gnu | kopensolaris*-gnu | gnu*)
-   lt_cv_deplibs_check_method=pass_all
-   ;;
- 
--netbsd*)
-+netbsd* | netbsdelf*-gnu)
-   if echo __ELF__ | $CC -E - | $GREP __ELF__ > /dev/null; then
-     lt_cv_deplibs_check_method='match_pattern /lib[[^/]]+(\.so\.[[0-9]]+\.[[0-9]]+|_pic\.a)$'
-   else
-@@ -4687,7 +4688,7 @@
- 	    ;;
- 	esac
- 	;;
--      linux* | k*bsd*-gnu | kopensolaris*-gnu)
-+      linux* | k*bsd*-gnu | kopensolaris*-gnu | gnu*)
- 	case $cc_basename in
- 	  KCC*)
- 	    # KAI C++ Compiler
-@@ -4751,7 +4752,7 @@
- 	    ;;
- 	esac
- 	;;
--      netbsd*)
-+      netbsd* | netbsdelf*-gnu)
- 	;;
-       *qnx* | *nto*)
-         # QNX uses GNU C++, but need to define -shared option too, otherwise
-@@ -4986,7 +4987,7 @@
-       _LT_TAGVAR(lt_prog_compiler_static, $1)='-non_shared'
-       ;;
- 
--    linux* | k*bsd*-gnu | kopensolaris*-gnu)
-+    linux* | k*bsd*-gnu | kopensolaris*-gnu | gnu*)
-       case $cc_basename in
-       # old Intel for x86_64 which still supported -KPIC.
-       ecc*)
-@@ -5228,6 +5229,9 @@
-       ;;
-     esac
-     ;;
-+  linux* | k*bsd*-gnu | gnu*)
-+    _LT_TAGVAR(link_all_deplibs, $1)=no
-+    ;;
-   *)
-     _LT_TAGVAR(export_symbols_cmds, $1)='$NM $libobjs $convenience | $global_symbol_pipe | $SED '\''s/.* //'\'' | sort | uniq > $export_symbols'
-     ;;
-@@ -5290,6 +5294,9 @@
-   openbsd*)
-     with_gnu_ld=no
-     ;;
-+  linux* | k*bsd*-gnu | gnu*)
-+    _LT_TAGVAR(link_all_deplibs, $1)=no
-+    ;;
-   esac
- 
-   _LT_TAGVAR(ld_shlibs, $1)=yes
-@@ -5511,7 +5518,7 @@
-       fi
-       ;;
- 
--    netbsd*)
-+    netbsd* | netbsdelf*-gnu)
-       if echo __ELF__ | $CC -E - | $GREP __ELF__ >/dev/null; then
- 	_LT_TAGVAR(archive_cmds, $1)='$LD -Bshareable $libobjs $deplibs $linker_flags -o $lib'
- 	wlarc=
-@@ -5688,6 +5695,7 @@
- 	if test "$aix_use_runtimelinking" = yes; then
- 	  shared_flag="$shared_flag "'${wl}-G'
- 	fi
-+	_LT_TAGVAR(link_all_deplibs, $1)=no
-       else
- 	# not using gcc
- 	if test "$host_cpu" = ia64; then
-@@ -5992,7 +6000,7 @@
-       _LT_TAGVAR(link_all_deplibs, $1)=yes
-       ;;
- 
--    netbsd*)
-+    netbsd* | netbsdelf*-gnu)
-       if echo __ELF__ | $CC -E - | $GREP __ELF__ >/dev/null; then
- 	_LT_TAGVAR(archive_cmds, $1)='$LD -Bshareable -o $lib $libobjs $deplibs $linker_flags'  # a.out
-       else
-@@ -6868,9 +6876,6 @@
-         _LT_TAGVAR(ld_shlibs, $1)=yes
-         ;;
- 
--      gnu*)
--        ;;
--
-       haiku*)
-         _LT_TAGVAR(archive_cmds, $1)='$CC -shared $libobjs $deplibs $compiler_flags ${wl}-soname $wl$soname -o $lib'
-         _LT_TAGVAR(link_all_deplibs, $1)=yes
-@@ -7032,7 +7037,7 @@
-         _LT_TAGVAR(inherit_rpath, $1)=yes
-         ;;
- 
--      linux* | k*bsd*-gnu | kopensolaris*-gnu)
-+      linux* | k*bsd*-gnu | kopensolaris*-gnu | gnu*)
-         case $cc_basename in
-           KCC*)
- 	    # Kuck and Associates, Inc. (KAI) C++ Compiler
-@@ -9491,7 +9496,7 @@
- AS_VAR_IF([$1], [""], [$5], [$4])dnl
- ])# PKG_CHECK_VAR
- 
--# Copyright (C) 2002-2014 Free Software Foundation, Inc.
-+# Copyright (C) 2002-2013 Free Software Foundation, Inc.
- #
- # This file is free software; the Free Software Foundation
- # gives unlimited permission to copy and/or distribute it,
-@@ -9503,10 +9508,10 @@
- # generated from the m4 files accompanying Automake X.Y.
- # (This private macro should not be called outside this file.)
- AC_DEFUN([AM_AUTOMAKE_VERSION],
--[am__api_version='1.15'
-+[am__api_version='1.14'
- dnl Some users find AM_AUTOMAKE_VERSION and mistake it for a way to
- dnl require some minimum version.  Point them to the right macro.
--m4_if([$1], [1.15], [],
-+m4_if([$1], [1.14.1], [],
-       [AC_FATAL([Do not call $0, use AM_INIT_AUTOMAKE([$1]).])])dnl
- ])
- 
-@@ -9522,14 +9527,14 @@
- # Call AM_AUTOMAKE_VERSION and AM_AUTOMAKE_VERSION so they can be traced.
- # This function is AC_REQUIREd by AM_INIT_AUTOMAKE.
- AC_DEFUN([AM_SET_CURRENT_AUTOMAKE_VERSION],
--[AM_AUTOMAKE_VERSION([1.15])dnl
-+[AM_AUTOMAKE_VERSION([1.14.1])dnl
- m4_ifndef([AC_AUTOCONF_VERSION],
-   [m4_copy([m4_PACKAGE_VERSION], [AC_AUTOCONF_VERSION])])dnl
- _AM_AUTOCONF_VERSION(m4_defn([AC_AUTOCONF_VERSION]))])
- 
- # AM_AUX_DIR_EXPAND                                         -*- Autoconf -*-
- 
--# Copyright (C) 2001-2014 Free Software Foundation, Inc.
-+# Copyright (C) 2001-2013 Free Software Foundation, Inc.
- #
- # This file is free software; the Free Software Foundation
- # gives unlimited permission to copy and/or distribute it,
-@@ -9574,14 +9579,15 @@
- # configured tree to be moved without reconfiguration.
- 
- AC_DEFUN([AM_AUX_DIR_EXPAND],
--[AC_REQUIRE([AC_CONFIG_AUX_DIR_DEFAULT])dnl
--# Expand $ac_aux_dir to an absolute path.
--am_aux_dir=`cd "$ac_aux_dir" && pwd`
-+[dnl Rely on autoconf to set up CDPATH properly.
-+AC_PREREQ([2.50])dnl
-+# expand $ac_aux_dir to an absolute path
-+am_aux_dir=`cd $ac_aux_dir && pwd`
- ])
- 
- # AM_CONDITIONAL                                            -*- Autoconf -*-
- 
--# Copyright (C) 1997-2014 Free Software Foundation, Inc.
-+# Copyright (C) 1997-2013 Free Software Foundation, Inc.
- #
- # This file is free software; the Free Software Foundation
- # gives unlimited permission to copy and/or distribute it,
-@@ -9612,7 +9618,7 @@
- Usually this means the macro was only invoked conditionally.]])
- fi])])
- 
--# Copyright (C) 1999-2014 Free Software Foundation, Inc.
-+# Copyright (C) 1999-2013 Free Software Foundation, Inc.
- #
- # This file is free software; the Free Software Foundation
- # gives unlimited permission to copy and/or distribute it,
-@@ -9803,7 +9809,7 @@
- 
- # Generate code to set up dependency tracking.              -*- Autoconf -*-
- 
--# Copyright (C) 1999-2014 Free Software Foundation, Inc.
-+# Copyright (C) 1999-2013 Free Software Foundation, Inc.
- #
- # This file is free software; the Free Software Foundation
- # gives unlimited permission to copy and/or distribute it,
-@@ -9879,7 +9885,7 @@
- 
- # Do all the work for Automake.                             -*- Autoconf -*-
- 
--# Copyright (C) 1996-2014 Free Software Foundation, Inc.
-+# Copyright (C) 1996-2013 Free Software Foundation, Inc.
- #
- # This file is free software; the Free Software Foundation
- # gives unlimited permission to copy and/or distribute it,
-@@ -9969,8 +9975,8 @@
- # <http://lists.gnu.org/archive/html/automake/2012-07/msg00001.html>
- # <http://lists.gnu.org/archive/html/automake/2012-07/msg00014.html>
- AC_SUBST([mkdir_p], ['$(MKDIR_P)'])
--# We need awk for the "check" target (and possibly the TAP driver).  The
--# system "awk" is bad on some platforms.
-+# We need awk for the "check" target.  The system "awk" is bad on
-+# some platforms.
- AC_REQUIRE([AC_PROG_AWK])dnl
- AC_REQUIRE([AC_PROG_MAKE_SET])dnl
- AC_REQUIRE([AM_SET_LEADING_DOT])dnl
-@@ -10044,9 +10050,6 @@
-     AC_MSG_ERROR([Your 'rm' program is bad, sorry.])
-   fi
- fi
--dnl The trailing newline in this macro's definition is deliberate, for
--dnl backward compatibility and to allow trailing 'dnl'-style comments
--dnl after the AM_INIT_AUTOMAKE invocation. See automake bug#16841.
- ])
- 
- dnl Hook into '_AC_COMPILER_EXEEXT' early to learn its expansion.  Do not
-@@ -10076,7 +10079,7 @@
- done
- echo "timestamp for $_am_arg" >`AS_DIRNAME(["$_am_arg"])`/stamp-h[]$_am_stamp_count])
- 
--# Copyright (C) 2001-2014 Free Software Foundation, Inc.
-+# Copyright (C) 2001-2013 Free Software Foundation, Inc.
- #
- # This file is free software; the Free Software Foundation
- # gives unlimited permission to copy and/or distribute it,
-@@ -10087,7 +10090,7 @@
- # Define $install_sh.
- AC_DEFUN([AM_PROG_INSTALL_SH],
- [AC_REQUIRE([AM_AUX_DIR_EXPAND])dnl
--if test x"${install_sh+set}" != xset; then
-+if test x"${install_sh}" != xset; then
-   case $am_aux_dir in
-   *\ * | *\	*)
-     install_sh="\${SHELL} '$am_aux_dir/install-sh'" ;;
-@@ -10097,7 +10100,7 @@
- fi
- AC_SUBST([install_sh])])
- 
--# Copyright (C) 2003-2014 Free Software Foundation, Inc.
-+# Copyright (C) 2003-2013 Free Software Foundation, Inc.
- #
- # This file is free software; the Free Software Foundation
- # gives unlimited permission to copy and/or distribute it,
-@@ -10119,7 +10122,7 @@
- # Add --enable-maintainer-mode option to configure.         -*- Autoconf -*-
- # From Jim Meyering
- 
--# Copyright (C) 1996-2014 Free Software Foundation, Inc.
-+# Copyright (C) 1996-2013 Free Software Foundation, Inc.
- #
- # This file is free software; the Free Software Foundation
- # gives unlimited permission to copy and/or distribute it,
-@@ -10154,7 +10157,7 @@
- 
- # Check to see how 'make' treats includes.	            -*- Autoconf -*-
- 
--# Copyright (C) 2001-2014 Free Software Foundation, Inc.
-+# Copyright (C) 2001-2013 Free Software Foundation, Inc.
- #
- # This file is free software; the Free Software Foundation
- # gives unlimited permission to copy and/or distribute it,
-@@ -10204,7 +10207,7 @@
- 
- # Fake the existence of programs that GNU maintainers use.  -*- Autoconf -*-
- 
--# Copyright (C) 1997-2014 Free Software Foundation, Inc.
-+# Copyright (C) 1997-2013 Free Software Foundation, Inc.
- #
- # This file is free software; the Free Software Foundation
- # gives unlimited permission to copy and/or distribute it,
-@@ -10243,7 +10246,7 @@
- 
- # Helper functions for option handling.                     -*- Autoconf -*-
- 
--# Copyright (C) 2001-2014 Free Software Foundation, Inc.
-+# Copyright (C) 2001-2013 Free Software Foundation, Inc.
- #
- # This file is free software; the Free Software Foundation
- # gives unlimited permission to copy and/or distribute it,
-@@ -10272,7 +10275,7 @@
- AC_DEFUN([_AM_IF_OPTION],
- [m4_ifset(_AM_MANGLE_OPTION([$1]), [$2], [$3])])
- 
--# Copyright (C) 1999-2014 Free Software Foundation, Inc.
-+# Copyright (C) 1999-2013 Free Software Foundation, Inc.
- #
- # This file is free software; the Free Software Foundation
- # gives unlimited permission to copy and/or distribute it,
-@@ -10319,7 +10322,7 @@
- # For backward compatibility.
- AC_DEFUN_ONCE([AM_PROG_CC_C_O], [AC_REQUIRE([AC_PROG_CC])])
- 
--# Copyright (C) 2001-2014 Free Software Foundation, Inc.
-+# Copyright (C) 2001-2013 Free Software Foundation, Inc.
- #
- # This file is free software; the Free Software Foundation
- # gives unlimited permission to copy and/or distribute it,
-@@ -10338,7 +10341,7 @@
- 
- # Check to make sure that the build environment is sane.    -*- Autoconf -*-
- 
--# Copyright (C) 1996-2014 Free Software Foundation, Inc.
-+# Copyright (C) 1996-2013 Free Software Foundation, Inc.
- #
- # This file is free software; the Free Software Foundation
- # gives unlimited permission to copy and/or distribute it,
-@@ -10419,7 +10422,7 @@
- rm -f conftest.file
- ])
- 
--# Copyright (C) 2009-2014 Free Software Foundation, Inc.
-+# Copyright (C) 2009-2013 Free Software Foundation, Inc.
- #
- # This file is free software; the Free Software Foundation
- # gives unlimited permission to copy and/or distribute it,
-@@ -10479,7 +10482,7 @@
- _AM_SUBST_NOTMAKE([AM_BACKSLASH])dnl
- ])
- 
--# Copyright (C) 2001-2014 Free Software Foundation, Inc.
-+# Copyright (C) 2001-2013 Free Software Foundation, Inc.
- #
- # This file is free software; the Free Software Foundation
- # gives unlimited permission to copy and/or distribute it,
-@@ -10507,7 +10510,7 @@
- INSTALL_STRIP_PROGRAM="\$(install_sh) -c -s"
- AC_SUBST([INSTALL_STRIP_PROGRAM])])
- 
--# Copyright (C) 2006-2014 Free Software Foundation, Inc.
-+# Copyright (C) 2006-2013 Free Software Foundation, Inc.
- #
- # This file is free software; the Free Software Foundation
- # gives unlimited permission to copy and/or distribute it,
-@@ -10526,7 +10529,7 @@
- 
- # Check how to create a tarball.                            -*- Autoconf -*-
- 
--# Copyright (C) 2004-2014 Free Software Foundation, Inc.
-+# Copyright (C) 2004-2013 Free Software Foundation, Inc.
- #
- # This file is free software; the Free Software Foundation
- # gives unlimited permission to copy and/or distribute it,
+#--- a/aclocal.m4
+#+++ b/aclocal.m4
+#@@ -1,6 +1,6 @@
+#-# generated automatically by aclocal 1.15 -*- Autoconf -*-
+#+# generated automatically by aclocal 1.14.1 -*- Autoconf -*-
+# 
+#-# Copyright (C) 1996-2014 Free Software Foundation, Inc.
+#+# Copyright (C) 1996-2013 Free Software Foundation, Inc.
+# 
+# # This file is free software; the Free Software Foundation
+# # gives unlimited permission to copy and/or distribute it,
+#@@ -1964,12 +1964,19 @@
+# 	    LD="${LD-ld} -m elf_i386_fbsd"
+# 	    ;;
+# 	  x86_64-*linux*)
+#-	    LD="${LD-ld} -m elf_i386"
+#+	    case `/usr/bin/file conftest.o` in
+#+	      *x86-64*)
+#+		LD="${LD-ld} -m elf32_x86_64"
+#+		;;
+#+	      *)
+#+		LD="${LD-ld} -m elf_i386"
+#+		;;
+#+	    esac
+# 	    ;;
+#-	  powerpc64le-*linux*)
+#+	  powerpc64le-*)
+# 	    LD="${LD-ld} -m elf32lppclinux"
+# 	    ;;
+#-	  powerpc64-*linux*)
+#+	  powerpc64-*)
+# 	    LD="${LD-ld} -m elf32ppclinux"
+# 	    ;;
+# 	  s390x-*linux*)
+#@@ -1988,10 +1995,10 @@
+# 	  x86_64-*linux*)
+# 	    LD="${LD-ld} -m elf_x86_64"
+# 	    ;;
+#-	  powerpcle-*linux*)
+#+	  powerpcle-*)
+# 	    LD="${LD-ld} -m elf64lppc"
+# 	    ;;
+#-	  powerpc-*linux*)
+#+	  powerpc-*)
+# 	    LD="${LD-ld} -m elf64ppc"
+# 	    ;;
+# 	  s390*-*linux*|s390*-*tpf*)
+#@@ -2334,7 +2341,8 @@
+#     ;;
+#   *)
+#     lt_cv_sys_max_cmd_len=`(getconf ARG_MAX) 2> /dev/null`
+#-    if test -n "$lt_cv_sys_max_cmd_len"; then
+#+    if test -n "$lt_cv_sys_max_cmd_len" && \
+#+	test undefined != "$lt_cv_sys_max_cmd_len"; then
+#       lt_cv_sys_max_cmd_len=`expr $lt_cv_sys_max_cmd_len \/ 4`
+#       lt_cv_sys_max_cmd_len=`expr $lt_cv_sys_max_cmd_len \* 3`
+#     else
+#@@ -3158,17 +3166,6 @@
+#   esac
+#   ;;
+# 
+#-gnu*)
+#-  version_type=linux # correct to gnu/linux during the next big refactor
+#-  need_lib_prefix=no
+#-  need_version=no
+#-  library_names_spec='${libname}${release}${shared_ext}$versuffix ${libname}${release}${shared_ext}${major} ${libname}${shared_ext}'
+#-  soname_spec='${libname}${release}${shared_ext}$major'
+#-  shlibpath_var=LD_LIBRARY_PATH
+#-  shlibpath_overrides_runpath=no
+#-  hardcode_into_libs=yes
+#-  ;;
+#-
+# haiku*)
+#   version_type=linux # correct to gnu/linux during the next big refactor
+#   need_lib_prefix=no
+#@@ -3285,7 +3282,7 @@
+#   ;;
+# 
+# # This must be glibc/ELF.
+#-linux* | k*bsd*-gnu | kopensolaris*-gnu)
+#+linux* | k*bsd*-gnu | kopensolaris*-gnu | gnu*)
+#   version_type=linux # correct to gnu/linux during the next big refactor
+#   need_lib_prefix=no
+#   need_version=no
+#@@ -3315,14 +3312,10 @@
+#   # before this can be enabled.
+#   hardcode_into_libs=yes
+# 
+#-  # Add ABI-specific directories to the system library path.
+#-  sys_lib_dlsearch_path_spec="/lib64 /usr/lib64 /lib /usr/lib"
+#-
+#   # Append ld.so.conf contents to the search path
+#   if test -f /etc/ld.so.conf; then
+#     lt_ld_extra=`awk '/^include / { system(sprintf("cd /etc; cat %s 2>/dev/null", \[$]2)); skip = 1; } { if (!skip) print \[$]0; skip = 0; }' < /etc/ld.so.conf | $SED -e 's/#.*//;/^[	 ]*hwcap[	 ]/d;s/[:,	]/ /g;s/=[^=]*$//;s/=[^= ]* / /g;s/"//g;/^$/d' | tr '\n' ' '`
+#-    sys_lib_dlsearch_path_spec="$sys_lib_dlsearch_path_spec $lt_ld_extra"
+#-
+#+    sys_lib_dlsearch_path_spec="/lib /usr/lib $lt_ld_extra"
+#   fi
+# 
+#   # We used to test for /lib/ld.so.1 and disable shared libraries on
+#@@ -3334,6 +3327,18 @@
+#   dynamic_linker='GNU/Linux ld.so'
+#   ;;
+# 
+#+netbsdelf*-gnu)
+#+  version_type=linux
+#+  need_lib_prefix=no
+#+  need_version=no
+#+  library_names_spec='${libname}${release}${shared_ext}$versuffix ${libname}${release}${shared_ext}$major ${libname}${shared_ext}'
+#+  soname_spec='${libname}${release}${shared_ext}$major'
+#+  shlibpath_var=LD_LIBRARY_PATH
+#+  shlibpath_overrides_runpath=no
+#+  hardcode_into_libs=yes
+#+  dynamic_linker='NetBSD ld.elf_so'
+#+  ;;
+#+
+# netbsd*)
+#   version_type=sunos
+#   need_lib_prefix=no
+#@@ -3893,10 +3898,6 @@
+#   fi
+#   ;;
+# 
+#-gnu*)
+#-  lt_cv_deplibs_check_method=pass_all
+#-  ;;
+#-
+# haiku*)
+#   lt_cv_deplibs_check_method=pass_all
+#   ;;
+#@@ -3935,11 +3936,11 @@
+#   ;;
+# 
+# # This must be glibc/ELF.
+#-linux* | k*bsd*-gnu | kopensolaris*-gnu)
+#+linux* | k*bsd*-gnu | kopensolaris*-gnu | gnu*)
+#   lt_cv_deplibs_check_method=pass_all
+#   ;;
+# 
+#-netbsd*)
+#+netbsd* | netbsdelf*-gnu)
+#   if echo __ELF__ | $CC -E - | $GREP __ELF__ > /dev/null; then
+#     lt_cv_deplibs_check_method='match_pattern /lib[[^/]]+(\.so\.[[0-9]]+\.[[0-9]]+|_pic\.a)$'
+#   else
+#@@ -4687,7 +4688,7 @@
+# 	    ;;
+# 	esac
+# 	;;
+#-      linux* | k*bsd*-gnu | kopensolaris*-gnu)
+#+      linux* | k*bsd*-gnu | kopensolaris*-gnu | gnu*)
+# 	case $cc_basename in
+# 	  KCC*)
+# 	    # KAI C++ Compiler
+#@@ -4751,7 +4752,7 @@
+# 	    ;;
+# 	esac
+# 	;;
+#-      netbsd*)
+#+      netbsd* | netbsdelf*-gnu)
+# 	;;
+#       *qnx* | *nto*)
+#         # QNX uses GNU C++, but need to define -shared option too, otherwise
+#@@ -4986,7 +4987,7 @@
+#       _LT_TAGVAR(lt_prog_compiler_static, $1)='-non_shared'
+#       ;;
+# 
+#-    linux* | k*bsd*-gnu | kopensolaris*-gnu)
+#+    linux* | k*bsd*-gnu | kopensolaris*-gnu | gnu*)
+#       case $cc_basename in
+#       # old Intel for x86_64 which still supported -KPIC.
+#       ecc*)
+#@@ -5228,6 +5229,9 @@
+#       ;;
+#     esac
+#     ;;
+#+  linux* | k*bsd*-gnu | gnu*)
+#+    _LT_TAGVAR(link_all_deplibs, $1)=no
+#+    ;;
+#   *)
+#     _LT_TAGVAR(export_symbols_cmds, $1)='$NM $libobjs $convenience | $global_symbol_pipe | $SED '\''s/.* //'\'' | sort | uniq > $export_symbols'
+#     ;;
+#@@ -5290,6 +5294,9 @@
+#   openbsd*)
+#     with_gnu_ld=no
+#     ;;
+#+  linux* | k*bsd*-gnu | gnu*)
+#+    _LT_TAGVAR(link_all_deplibs, $1)=no
+#+    ;;
+#   esac
+# 
+#   _LT_TAGVAR(ld_shlibs, $1)=yes
+#@@ -5511,7 +5518,7 @@
+#       fi
+#       ;;
+# 
+#-    netbsd*)
+#+    netbsd* | netbsdelf*-gnu)
+#       if echo __ELF__ | $CC -E - | $GREP __ELF__ >/dev/null; then
+# 	_LT_TAGVAR(archive_cmds, $1)='$LD -Bshareable $libobjs $deplibs $linker_flags -o $lib'
+# 	wlarc=
+#@@ -5688,6 +5695,7 @@
+# 	if test "$aix_use_runtimelinking" = yes; then
+# 	  shared_flag="$shared_flag "'${wl}-G'
+# 	fi
+#+	_LT_TAGVAR(link_all_deplibs, $1)=no
+#       else
+# 	# not using gcc
+# 	if test "$host_cpu" = ia64; then
+#@@ -5992,7 +6000,7 @@
+#       _LT_TAGVAR(link_all_deplibs, $1)=yes
+#       ;;
+# 
+#-    netbsd*)
+#+    netbsd* | netbsdelf*-gnu)
+#       if echo __ELF__ | $CC -E - | $GREP __ELF__ >/dev/null; then
+# 	_LT_TAGVAR(archive_cmds, $1)='$LD -Bshareable -o $lib $libobjs $deplibs $linker_flags'  # a.out
+#       else
+#@@ -6868,9 +6876,6 @@
+#         _LT_TAGVAR(ld_shlibs, $1)=yes
+#         ;;
+# 
+#-      gnu*)
+#-        ;;
+#-
+#       haiku*)
+#         _LT_TAGVAR(archive_cmds, $1)='$CC -shared $libobjs $deplibs $compiler_flags ${wl}-soname $wl$soname -o $lib'
+#         _LT_TAGVAR(link_all_deplibs, $1)=yes
+#@@ -7032,7 +7037,7 @@
+#         _LT_TAGVAR(inherit_rpath, $1)=yes
+#         ;;
+# 
+#-      linux* | k*bsd*-gnu | kopensolaris*-gnu)
+#+      linux* | k*bsd*-gnu | kopensolaris*-gnu | gnu*)
+#         case $cc_basename in
+#           KCC*)
+# 	    # Kuck and Associates, Inc. (KAI) C++ Compiler
+#@@ -9491,7 +9496,7 @@
+# AS_VAR_IF([$1], [""], [$5], [$4])dnl
+# ])# PKG_CHECK_VAR
+# 
+#-# Copyright (C) 2002-2014 Free Software Foundation, Inc.
+#+# Copyright (C) 2002-2013 Free Software Foundation, Inc.
+# #
+# # This file is free software; the Free Software Foundation
+# # gives unlimited permission to copy and/or distribute it,
+#@@ -9503,10 +9508,10 @@
+# # generated from the m4 files accompanying Automake X.Y.
+# # (This private macro should not be called outside this file.)
+# AC_DEFUN([AM_AUTOMAKE_VERSION],
+#-[am__api_version='1.15'
+#+[am__api_version='1.14'
+# dnl Some users find AM_AUTOMAKE_VERSION and mistake it for a way to
+# dnl require some minimum version.  Point them to the right macro.
+#-m4_if([$1], [1.15], [],
+#+m4_if([$1], [1.14.1], [],
+#       [AC_FATAL([Do not call $0, use AM_INIT_AUTOMAKE([$1]).])])dnl
+# ])
+# 
+#@@ -9522,14 +9527,14 @@
+# # Call AM_AUTOMAKE_VERSION and AM_AUTOMAKE_VERSION so they can be traced.
+# # This function is AC_REQUIREd by AM_INIT_AUTOMAKE.
+# AC_DEFUN([AM_SET_CURRENT_AUTOMAKE_VERSION],
+#-[AM_AUTOMAKE_VERSION([1.15])dnl
+#+[AM_AUTOMAKE_VERSION([1.14.1])dnl
+# m4_ifndef([AC_AUTOCONF_VERSION],
+#   [m4_copy([m4_PACKAGE_VERSION], [AC_AUTOCONF_VERSION])])dnl
+# _AM_AUTOCONF_VERSION(m4_defn([AC_AUTOCONF_VERSION]))])
+# 
+# # AM_AUX_DIR_EXPAND                                         -*- Autoconf -*-
+# 
+#-# Copyright (C) 2001-2014 Free Software Foundation, Inc.
+#+# Copyright (C) 2001-2013 Free Software Foundation, Inc.
+# #
+# # This file is free software; the Free Software Foundation
+# # gives unlimited permission to copy and/or distribute it,
+#@@ -9574,14 +9579,15 @@
+# # configured tree to be moved without reconfiguration.
+# 
+# AC_DEFUN([AM_AUX_DIR_EXPAND],
+#-[AC_REQUIRE([AC_CONFIG_AUX_DIR_DEFAULT])dnl
+#-# Expand $ac_aux_dir to an absolute path.
+#-am_aux_dir=`cd "$ac_aux_dir" && pwd`
+#+[dnl Rely on autoconf to set up CDPATH properly.
+#+AC_PREREQ([2.50])dnl
+#+# expand $ac_aux_dir to an absolute path
+#+am_aux_dir=`cd $ac_aux_dir && pwd`
+# ])
+# 
+# # AM_CONDITIONAL                                            -*- Autoconf -*-
+# 
+#-# Copyright (C) 1997-2014 Free Software Foundation, Inc.
+#+# Copyright (C) 1997-2013 Free Software Foundation, Inc.
+# #
+# # This file is free software; the Free Software Foundation
+# # gives unlimited permission to copy and/or distribute it,
+#@@ -9612,7 +9618,7 @@
+# Usually this means the macro was only invoked conditionally.]])
+# fi])])
+# 
+#-# Copyright (C) 1999-2014 Free Software Foundation, Inc.
+#+# Copyright (C) 1999-2013 Free Software Foundation, Inc.
+# #
+# # This file is free software; the Free Software Foundation
+# # gives unlimited permission to copy and/or distribute it,
+#@@ -9803,7 +9809,7 @@
+# 
+# # Generate code to set up dependency tracking.              -*- Autoconf -*-
+# 
+#-# Copyright (C) 1999-2014 Free Software Foundation, Inc.
+#+# Copyright (C) 1999-2013 Free Software Foundation, Inc.
+# #
+# # This file is free software; the Free Software Foundation
+# # gives unlimited permission to copy and/or distribute it,
+#@@ -9879,7 +9885,7 @@
+# 
+# # Do all the work for Automake.                             -*- Autoconf -*-
+# 
+#-# Copyright (C) 1996-2014 Free Software Foundation, Inc.
+#+# Copyright (C) 1996-2013 Free Software Foundation, Inc.
+# #
+# # This file is free software; the Free Software Foundation
+# # gives unlimited permission to copy and/or distribute it,
+#@@ -9969,8 +9975,8 @@
+# # <http://lists.gnu.org/archive/html/automake/2012-07/msg00001.html>
+# # <http://lists.gnu.org/archive/html/automake/2012-07/msg00014.html>
+# AC_SUBST([mkdir_p], ['$(MKDIR_P)'])
+#-# We need awk for the "check" target (and possibly the TAP driver).  The
+#-# system "awk" is bad on some platforms.
+#+# We need awk for the "check" target.  The system "awk" is bad on
+#+# some platforms.
+# AC_REQUIRE([AC_PROG_AWK])dnl
+# AC_REQUIRE([AC_PROG_MAKE_SET])dnl
+# AC_REQUIRE([AM_SET_LEADING_DOT])dnl
+#@@ -10044,9 +10050,6 @@
+#     AC_MSG_ERROR([Your 'rm' program is bad, sorry.])
+#   fi
+# fi
+#-dnl The trailing newline in this macro's definition is deliberate, for
+#-dnl backward compatibility and to allow trailing 'dnl'-style comments
+#-dnl after the AM_INIT_AUTOMAKE invocation. See automake bug#16841.
+# ])
+# 
+# dnl Hook into '_AC_COMPILER_EXEEXT' early to learn its expansion.  Do not
+#@@ -10076,7 +10079,7 @@
+# done
+# echo "timestamp for $_am_arg" >`AS_DIRNAME(["$_am_arg"])`/stamp-h[]$_am_stamp_count])
+# 
+#-# Copyright (C) 2001-2014 Free Software Foundation, Inc.
+#+# Copyright (C) 2001-2013 Free Software Foundation, Inc.
+# #
+# # This file is free software; the Free Software Foundation
+# # gives unlimited permission to copy and/or distribute it,
+#@@ -10087,7 +10090,7 @@
+# # Define $install_sh.
+# AC_DEFUN([AM_PROG_INSTALL_SH],
+# [AC_REQUIRE([AM_AUX_DIR_EXPAND])dnl
+#-if test x"${install_sh+set}" != xset; then
+#+if test x"${install_sh}" != xset; then
+#   case $am_aux_dir in
+#   *\ * | *\	*)
+#     install_sh="\${SHELL} '$am_aux_dir/install-sh'" ;;
+#@@ -10097,7 +10100,7 @@
+# fi
+# AC_SUBST([install_sh])])
+# 
+#-# Copyright (C) 2003-2014 Free Software Foundation, Inc.
+#+# Copyright (C) 2003-2013 Free Software Foundation, Inc.
+# #
+# # This file is free software; the Free Software Foundation
+# # gives unlimited permission to copy and/or distribute it,
+#@@ -10119,7 +10122,7 @@
+# # Add --enable-maintainer-mode option to configure.         -*- Autoconf -*-
+# # From Jim Meyering
+# 
+#-# Copyright (C) 1996-2014 Free Software Foundation, Inc.
+#+# Copyright (C) 1996-2013 Free Software Foundation, Inc.
+# #
+# # This file is free software; the Free Software Foundation
+# # gives unlimited permission to copy and/or distribute it,
+#@@ -10154,7 +10157,7 @@
+# 
+# # Check to see how 'make' treats includes.	            -*- Autoconf -*-
+# 
+#-# Copyright (C) 2001-2014 Free Software Foundation, Inc.
+#+# Copyright (C) 2001-2013 Free Software Foundation, Inc.
+# #
+# # This file is free software; the Free Software Foundation
+# # gives unlimited permission to copy and/or distribute it,
+#@@ -10204,7 +10207,7 @@
+# 
+# # Fake the existence of programs that GNU maintainers use.  -*- Autoconf -*-
+# 
+#-# Copyright (C) 1997-2014 Free Software Foundation, Inc.
+#+# Copyright (C) 1997-2013 Free Software Foundation, Inc.
+# #
+# # This file is free software; the Free Software Foundation
+# # gives unlimited permission to copy and/or distribute it,
+#@@ -10243,7 +10246,7 @@
+# 
+# # Helper functions for option handling.                     -*- Autoconf -*-
+# 
+#-# Copyright (C) 2001-2014 Free Software Foundation, Inc.
+#+# Copyright (C) 2001-2013 Free Software Foundation, Inc.
+# #
+# # This file is free software; the Free Software Foundation
+# # gives unlimited permission to copy and/or distribute it,
+#@@ -10272,7 +10275,7 @@
+# AC_DEFUN([_AM_IF_OPTION],
+# [m4_ifset(_AM_MANGLE_OPTION([$1]), [$2], [$3])])
+# 
+#-# Copyright (C) 1999-2014 Free Software Foundation, Inc.
+#+# Copyright (C) 1999-2013 Free Software Foundation, Inc.
+# #
+# # This file is free software; the Free Software Foundation
+# # gives unlimited permission to copy and/or distribute it,
+#@@ -10319,7 +10322,7 @@
+# # For backward compatibility.
+# AC_DEFUN_ONCE([AM_PROG_CC_C_O], [AC_REQUIRE([AC_PROG_CC])])
+# 
+#-# Copyright (C) 2001-2014 Free Software Foundation, Inc.
+#+# Copyright (C) 2001-2013 Free Software Foundation, Inc.
+# #
+# # This file is free software; the Free Software Foundation
+# # gives unlimited permission to copy and/or distribute it,
+#@@ -10338,7 +10341,7 @@
+# 
+# # Check to make sure that the build environment is sane.    -*- Autoconf -*-
+# 
+#-# Copyright (C) 1996-2014 Free Software Foundation, Inc.
+#+# Copyright (C) 1996-2013 Free Software Foundation, Inc.
+# #
+# # This file is free software; the Free Software Foundation
+# # gives unlimited permission to copy and/or distribute it,
+#@@ -10419,7 +10422,7 @@
+# rm -f conftest.file
+# ])
+# 
+#-# Copyright (C) 2009-2014 Free Software Foundation, Inc.
+#+# Copyright (C) 2009-2013 Free Software Foundation, Inc.
+# #
+# # This file is free software; the Free Software Foundation
+# # gives unlimited permission to copy and/or distribute it,
+#@@ -10479,7 +10482,7 @@
+# _AM_SUBST_NOTMAKE([AM_BACKSLASH])dnl
+# ])
+# 
+#-# Copyright (C) 2001-2014 Free Software Foundation, Inc.
+#+# Copyright (C) 2001-2013 Free Software Foundation, Inc.
+# #
+# # This file is free software; the Free Software Foundation
+# # gives unlimited permission to copy and/or distribute it,
+#@@ -10507,7 +10510,7 @@
+# INSTALL_STRIP_PROGRAM="\$(install_sh) -c -s"
+# AC_SUBST([INSTALL_STRIP_PROGRAM])])
+# 
+#-# Copyright (C) 2006-2014 Free Software Foundation, Inc.
+#+# Copyright (C) 2006-2013 Free Software Foundation, Inc.
+# #
+# # This file is free software; the Free Software Foundation
+# # gives unlimited permission to copy and/or distribute it,
+#@@ -10526,7 +10529,7 @@
+# 
+# # Check how to create a tarball.                            -*- Autoconf -*-
+# 
+#-# Copyright (C) 2004-2014 Free Software Foundation, Inc.
+#+# Copyright (C) 2004-2013 Free Software Foundation, Inc.
+# #
+# # This file is free software; the Free Software Foundation
+# # gives unlimited permission to copy and/or distribute it,
 --- a/config.h.in
 +++ b/config.h.in
 @@ -94,6 +94,9 @@
@@ -1057,64 +1057,64 @@
  # Always define AMTAR for backward compatibility.  Yes, it's still used
  # in the wild :-(  We should find a proper way to deprecate it ...
  AMTAR='$${TAR-tar}'
-@@ -6797,7 +6801,8 @@
-     ;;
-   *)
-     lt_cv_sys_max_cmd_len=`(getconf ARG_MAX) 2> /dev/null`
--    if test -n "$lt_cv_sys_max_cmd_len"; then
-+    if test -n "$lt_cv_sys_max_cmd_len" && \
-+	test undefined != "$lt_cv_sys_max_cmd_len"; then
-       lt_cv_sys_max_cmd_len=`expr $lt_cv_sys_max_cmd_len \/ 4`
-       lt_cv_sys_max_cmd_len=`expr $lt_cv_sys_max_cmd_len \* 3`
-     else
-@@ -7198,10 +7203,6 @@
-   fi
-   ;;
- 
--gnu*)
--  lt_cv_deplibs_check_method=pass_all
--  ;;
--
- haiku*)
-   lt_cv_deplibs_check_method=pass_all
-   ;;
-@@ -7240,11 +7241,11 @@
-   ;;
- 
- # This must be glibc/ELF.
--linux* | k*bsd*-gnu | kopensolaris*-gnu)
-+linux* | k*bsd*-gnu | kopensolaris*-gnu | gnu*)
-   lt_cv_deplibs_check_method=pass_all
-   ;;
- 
--netbsd*)
-+netbsd* | netbsdelf*-gnu)
-   if echo __ELF__ | $CC -E - | $GREP __ELF__ > /dev/null; then
-     lt_cv_deplibs_check_method='match_pattern /lib[^/]+(\.so\.[0-9]+\.[0-9]+|_pic\.a)$'
-   else
-@@ -8337,12 +8338,19 @@
- 	    LD="${LD-ld} -m elf_i386_fbsd"
- 	    ;;
- 	  x86_64-*linux*)
--	    LD="${LD-ld} -m elf_i386"
-+	    case `/usr/bin/file conftest.o` in
-+	      *x86-64*)
-+		LD="${LD-ld} -m elf32_x86_64"
-+		;;
-+	      *)
-+		LD="${LD-ld} -m elf_i386"
-+		;;
-+	    esac
- 	    ;;
--	  powerpc64le-*linux*)
-+	  powerpc64le-*)
- 	    LD="${LD-ld} -m elf32lppclinux"
- 	    ;;
--	  powerpc64-*linux*)
-+	  powerpc64-*)
- 	    LD="${LD-ld} -m elf32ppclinux"
- 	    ;;
- 	  s390x-*linux*)
+#@@ -6797,7 +6801,8 @@
+#     ;;
+#   *)
+#     lt_cv_sys_max_cmd_len=`(getconf ARG_MAX) 2> /dev/null`
+#-    if test -n "$lt_cv_sys_max_cmd_len"; then
+#+    if test -n "$lt_cv_sys_max_cmd_len" && \
+#+	test undefined != "$lt_cv_sys_max_cmd_len"; then
+#       lt_cv_sys_max_cmd_len=`expr $lt_cv_sys_max_cmd_len \/ 4`
+#       lt_cv_sys_max_cmd_len=`expr $lt_cv_sys_max_cmd_len \* 3`
+#     else
+#@@ -7198,10 +7203,6 @@
+#   fi
+#   ;;
+# 
+#-gnu*)
+#-  lt_cv_deplibs_check_method=pass_all
+#-  ;;
+#-
+# haiku*)
+#   lt_cv_deplibs_check_method=pass_all
+#   ;;
+#@@ -7240,11 +7241,11 @@
+#   ;;
+# 
+# # This must be glibc/ELF.
+#-linux* | k*bsd*-gnu | kopensolaris*-gnu)
+#+linux* | k*bsd*-gnu | kopensolaris*-gnu | gnu*)
+#   lt_cv_deplibs_check_method=pass_all
+#   ;;
+# 
+#-netbsd*)
+#+netbsd* | netbsdelf*-gnu)
+#   if echo __ELF__ | $CC -E - | $GREP __ELF__ > /dev/null; then
+#     lt_cv_deplibs_check_method='match_pattern /lib[^/]+(\.so\.[0-9]+\.[0-9]+|_pic\.a)$'
+#   else
+#@@ -8337,12 +8338,19 @@
+# 	    LD="${LD-ld} -m elf_i386_fbsd"
+# 	    ;;
+# 	  x86_64-*linux*)
+#-	    LD="${LD-ld} -m elf_i386"
+#+	    case `/usr/bin/file conftest.o` in
+#+	      *x86-64*)
+#+		LD="${LD-ld} -m elf32_x86_64"
+#+		;;
+#+	      *)
+#+		LD="${LD-ld} -m elf_i386"
+#+		;;
+#+	    esac
+# 	    ;;
+#-	  powerpc64le-*linux*)
+#+	  powerpc64le-*)
+# 	    LD="${LD-ld} -m elf32lppclinux"
+# 	    ;;
+#-	  powerpc64-*linux*)
+#+	  powerpc64-*)
+# 	    LD="${LD-ld} -m elf32ppclinux"
+# 	    ;;
+# 	  s390x-*linux*)
 @@ -8361,10 +8369,10 @@
  	  x86_64-*linux*)
  	    LD="${LD-ld} -m elf_x86_64"
@@ -1128,15 +1128,15 @@
  	    LD="${LD-ld} -m elf64ppc"
  	    ;;
  	  s390*-*linux*|s390*-*tpf*)
-@@ -9900,7 +9908,7 @@
-       lt_prog_compiler_static='-non_shared'
-       ;;
- 
--    linux* | k*bsd*-gnu | kopensolaris*-gnu)
-+    linux* | k*bsd*-gnu | kopensolaris*-gnu | gnu*)
-       case $cc_basename in
-       # old Intel for x86_64 which still supported -KPIC.
-       ecc*)
+#@@ -9900,7 +9908,7 @@
+#       lt_prog_compiler_static='-non_shared'
+#       ;;
+# 
+#-    linux* | k*bsd*-gnu | kopensolaris*-gnu)
+#+    linux* | k*bsd*-gnu | kopensolaris*-gnu | gnu*)
+#       case $cc_basename in
+#       # old Intel for x86_64 which still supported -KPIC.
+#       ecc*)
 @@ -10378,6 +10386,9 @@
    openbsd*)
      with_gnu_ld=no
@@ -1173,49 +1173,49 @@
        if echo __ELF__ | $CC -E - | $GREP __ELF__ >/dev/null; then
  	archive_cmds='$LD -Bshareable -o $lib $libobjs $deplibs $linker_flags'  # a.out
        else
-@@ -12066,17 +12078,6 @@
-   esac
-   ;;
- 
--gnu*)
--  version_type=linux # correct to gnu/linux during the next big refactor
--  need_lib_prefix=no
--  need_version=no
--  library_names_spec='${libname}${release}${shared_ext}$versuffix ${libname}${release}${shared_ext}${major} ${libname}${shared_ext}'
--  soname_spec='${libname}${release}${shared_ext}$major'
--  shlibpath_var=LD_LIBRARY_PATH
--  shlibpath_overrides_runpath=no
--  hardcode_into_libs=yes
--  ;;
--
- haiku*)
-   version_type=linux # correct to gnu/linux during the next big refactor
-   need_lib_prefix=no
-@@ -12193,7 +12194,7 @@
-   ;;
- 
- # This must be glibc/ELF.
--linux* | k*bsd*-gnu | kopensolaris*-gnu)
-+linux* | k*bsd*-gnu | kopensolaris*-gnu | gnu*)
-   version_type=linux # correct to gnu/linux during the next big refactor
-   need_lib_prefix=no
-   need_version=no
-@@ -12242,14 +12243,10 @@
-   # before this can be enabled.
-   hardcode_into_libs=yes
- 
--  # Add ABI-specific directories to the system library path.
--  sys_lib_dlsearch_path_spec="/lib64 /usr/lib64 /lib /usr/lib"
--
-   # Append ld.so.conf contents to the search path
-   if test -f /etc/ld.so.conf; then
-     lt_ld_extra=`awk '/^include / { system(sprintf("cd /etc; cat %s 2>/dev/null", \$2)); skip = 1; } { if (!skip) print \$0; skip = 0; }' < /etc/ld.so.conf | $SED -e 's/#.*//;/^[	 ]*hwcap[	 ]/d;s/[:,	]/ /g;s/=[^=]*$//;s/=[^= ]* / /g;s/"//g;/^$/d' | tr '\n' ' '`
--    sys_lib_dlsearch_path_spec="$sys_lib_dlsearch_path_spec $lt_ld_extra"
--
-+    sys_lib_dlsearch_path_spec="/lib /usr/lib $lt_ld_extra"
-   fi
- 
-   # We used to test for /lib/ld.so.1 and disable shared libraries on
+#@@ -12066,17 +12078,6 @@
+#   esac
+#   ;;
+# 
+#-gnu*)
+#-  version_type=linux # correct to gnu/linux during the next big refactor
+#-  need_lib_prefix=no
+#-  need_version=no
+#-  library_names_spec='${libname}${release}${shared_ext}$versuffix ${libname}${release}${shared_ext}${major} ${libname}${shared_ext}'
+#-  soname_spec='${libname}${release}${shared_ext}$major'
+#-  shlibpath_var=LD_LIBRARY_PATH
+#-  shlibpath_overrides_runpath=no
+#-  hardcode_into_libs=yes
+#-  ;;
+#-
+# haiku*)
+#   version_type=linux # correct to gnu/linux during the next big refactor
+#   need_lib_prefix=no
+#@@ -12193,7 +12194,7 @@
+#   ;;
+# 
+# # This must be glibc/ELF.
+#-linux* | k*bsd*-gnu | kopensolaris*-gnu)
+#+linux* | k*bsd*-gnu | kopensolaris*-gnu | gnu*)
+#   version_type=linux # correct to gnu/linux during the next big refactor
+#   need_lib_prefix=no
+#   need_version=no
+#@@ -12242,14 +12243,10 @@
+#   # before this can be enabled.
+#   hardcode_into_libs=yes
+# 
+#-  # Add ABI-specific directories to the system library path.
+#-  sys_lib_dlsearch_path_spec="/lib64 /usr/lib64 /lib /usr/lib"
+#-
+#   # Append ld.so.conf contents to the search path
+#   if test -f /etc/ld.so.conf; then
+#     lt_ld_extra=`awk '/^include / { system(sprintf("cd /etc; cat %s 2>/dev/null", \$2)); skip = 1; } { if (!skip) print \$0; skip = 0; }' < /etc/ld.so.conf | $SED -e 's/#.*//;/^[	 ]*hwcap[	 ]/d;s/[:,	]/ /g;s/=[^=]*$//;s/=[^= ]* / /g;s/"//g;/^$/d' | tr '\n' ' '`
+#-    sys_lib_dlsearch_path_spec="$sys_lib_dlsearch_path_spec $lt_ld_extra"
+#-
+#+    sys_lib_dlsearch_path_spec="/lib /usr/lib $lt_ld_extra"
+#   fi
+# 
+#   # We used to test for /lib/ld.so.1 and disable shared libraries on
 @@ -12261,6 +12258,18 @@
    dynamic_linker='GNU/Linux ld.so'
    ;;
@@ -3172,28 +3172,28 @@
  
 --- a/ltmain.sh
 +++ b/ltmain.sh
-@@ -70,7 +70,7 @@
- #         compiler:		$LTCC
- #         compiler flags:		$LTCFLAGS
- #         linker:		$LD (gnu? $with_gnu_ld)
--#         $progname:	(GNU libtool) 2.4.2
-+#         $progname:	(GNU libtool) 2.4.2 Debian-2.4.2-1.11
- #         automake:	$automake_version
- #         autoconf:	$autoconf_version
- #
-@@ -80,7 +80,7 @@
- 
- PROGRAM=libtool
- PACKAGE=libtool
--VERSION=2.4.2
-+VERSION="2.4.2 Debian-2.4.2-1.11"
- TIMESTAMP=""
- package_revision=1.3337
- 
+#@@ -70,7 +70,7 @@
+# #         compiler:		$LTCC
+# #         compiler flags:		$LTCFLAGS
+# #         linker:		$LD (gnu? $with_gnu_ld)
+#-#         $progname:	(GNU libtool) 2.4.2
+#+#         $progname:	(GNU libtool) 2.4.2 Debian-2.4.2-1.11
+# #         automake:	$automake_version
+# #         autoconf:	$autoconf_version
+# #
+#@@ -80,7 +80,7 @@
+# 
+# PROGRAM=libtool
+# PACKAGE=libtool
+#-VERSION=2.4.2
+#+VERSION="2.4.2 Debian-2.4.2-1.11"
+# TIMESTAMP=""
+# package_revision=1.3337
+# 
 @@ -6124,7 +6124,10 @@
  	case $pass in
- 	dlopen) libs="$dlfiles" ;;
- 	dlpreopen) libs="$dlprefiles" ;;
+ 	dlopen) libs=$dlfiles ;;
+ 	dlpreopen) libs=$dlprefiles ;;
 -	link) libs="$deplibs %DEPLIBS% $dependency_libs" ;;
 +	link)
 +	  libs="$deplibs %DEPLIBS%"
@@ -3201,7 +3201,7 @@
 +	  ;;
  	esac
        fi
-       if test "$linkmode,$pass" = "lib,dlpreopen"; then
+       if test lib,dlpreopen = "$linkmode,$pass"; then
 @@ -6444,19 +6447,19 @@
  	    # It is a libtool convenience library, so add in its objects.
  	    func_append convenience " $ladir/$objdir/$old_library"
@@ -3216,13 +3216,13 @@
 +	      fi
 +	      func_append tmp_libs " $deplib"
 +	    done
- 	  elif test "$linkmode" != prog && test "$linkmode" != lib; then
- 	    func_fatal_error "\`$lib' is not a convenience library"
+ 	  elif test prog != "$linkmode" && test lib != "$linkmode"; then
+ 	    func_fatal_error "'$lib' is not a convenience library"
  	  fi
 -	  tmp_libs=
 -	  for deplib in $dependency_libs; do
 -	    deplibs="$deplib $deplibs"
--	    if $opt_preserve_dup_deps ; then
+-	    if $opt_preserve_dup_deps; then
 -	      case "$tmp_libs " in
 -	      *" $deplib "*) func_append specialdeplibs " $deplib" ;;
 -	      esac
